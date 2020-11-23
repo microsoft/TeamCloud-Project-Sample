@@ -1,0 +1,30 @@
+# Set the component type
+type: AzureResource
+
+# set the component description
+description: ./readme.md
+
+# Set the component isolation level
+isolation: ResourceGroup
+
+parameters:
+  - id: storagePlan
+    name: Storage Plan
+    type: string
+    value: RAGRS
+    readonly: true
+
+  - id: region
+    name: Azure Region
+    type: string
+    value: eastus
+    required: true
+
+# Make the following subscription pools available for this component. This section – if defined –
+# overrides the set of subscription pools defined in project manifest file.
+
+pools:
+  - Development
+  - Staging
+
+provider: azure.arm

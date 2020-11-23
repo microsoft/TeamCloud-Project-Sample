@@ -1,0 +1,54 @@
+# Set the component type
+type: Environment
+
+# set the component description
+description: ./readme.md
+
+# Set the component isolation level
+isolation: ResourceGroup
+
+parameters:
+  - id: template
+    name: Template
+    type: string
+    value: ./azuredeploy.json
+    readonly: true
+
+  - id: runtimePlan
+    name: Runtime Plan
+    type: string
+    value: Consumption
+    readonly: true
+    required: true
+
+  - id: instrumentationKey
+    name: Instrumentation Key
+    type: string
+
+  - id: functionsRuntimeStack
+    name: Function App Runtime stack
+    type: string
+    required: true
+    default: .NET Core
+    allowed:
+      - .NET Core
+      - node-js
+      - powershell
+
+  - id: functionsRuntimeVersion
+    name: Function App Runtime version
+    type: string
+    required: true
+    default: 3.1
+    allowed:
+      - 3.1
+      - 2.0
+
+# Make the following subscription pools available for this component. This section – if defined –
+# overrides the set of subscription pools defined in project manifest file.
+
+pools:
+  - Development
+  - Staging
+
+provider: azure.arm
