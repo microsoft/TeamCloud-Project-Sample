@@ -8,11 +8,6 @@ description: ./readme.md
 isolation: ResourceGroup
 
 parameters:
-  - id: template
-    name: Template
-    type: string
-    value: ./azuredeploy.json
-    readonly: true
 
   - id: runtimePlan
     name: Runtime Plan
