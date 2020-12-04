@@ -9,35 +9,25 @@ isolation: ResourceGroup
 
 parameters:
 
-  - id: runtimePlan
-    name: Runtime Plan
-    type: string
-    value: Consumption
-    readonly: true
-    required: true
-
-  - id: instrumentationKey
-    name: Instrumentation Key
-    type: string
-
-  - id: functionsRuntimeStack
-    name: Function App Runtime stack
+  - id: functionAppRuntime
+    name: Function App Runtime
     type: string
     required: true
-    default: .NET Core
+    default: dotnet
     allowed:
-      - .NET Core
-      - node-js
-      - powershell
+      - node
+      - dotnet
+      - java
 
-  - id: functionsRuntimeVersion
-    name: Function App Runtime version
+  - id: storageAccountType
+    name: Storage Account Type
     type: string
     required: true
-    default: 3.1
+    default: Standard_LRS
     allowed:
-      - 3.1
-      - 2.0
+      - Standard_LRS
+      - Standard_GRS
+      - Standard_RAGRS
 
 # Make the following subscription pools available for this component. This section – if defined –
 # overrides the set of subscription pools defined in project manifest file.

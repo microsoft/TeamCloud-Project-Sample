@@ -2,6 +2,18 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
+        "functionAppRuntime": {
+            "type": "string",
+            "defaultValue": "node",
+            "allowedValues": [
+                "node",
+                "dotnet",
+                "java"
+            ],
+            "metadata": {
+                "description": "The language worker runtime to load in the function app."
+            }
+        },
         "appName": {
             "type": "string",
             "defaultValue": "[concat('fnapp', uniqueString(resourceGroup().id))]",
@@ -20,46 +32,21 @@
             "metadata": {
                 "description": "Storage Account type"
             }
-        },
-        "location": {
-            "type": "string",
-            "defaultValue": "[resourceGroup().location]",
-            "metadata": {
-                "description": "Location for all resources."
-            }
-        },
-        "appInsightsLocation": {
-            "type": "string",
-            "metadata": {
-                "description": "Location for Application Insights"
-            }
-        },
-        "runtime": {
-            "type": "string",
-            "defaultValue": "node",
-            "allowedValues": [
-                "node",
-                "dotnet",
-                "java"
-            ],
-            "metadata": {
-                "description": "The language worker runtime to load in the function app."
-            }
         }
     },
     "variables": {
         "functionAppName": "[parameters('appName')]",
         "hostingPlanName": "[parameters('appName')]",
         "applicationInsightsName": "[parameters('appName')]",
-        "storageAccountName": "[concat(uniquestring(resourceGroup().id), 'azfunctions')]",
-        "functionWorkerRuntime": "[parameters('runtime')]"
+        "storageAccountName": "[concat('sa', uniquestring(resourceGroup().id))]",
+        "functionWorkerRuntime": "[parameters('functionAppRuntime')]"
     },
     "resources": [
         {
             "type": "Microsoft.Storage/storageAccounts",
             "apiVersion": "2019-06-01",
             "name": "[variables('storageAccountName')]",
-            "location": "[parameters('location')]",
+            "location": "[resourceGroup().location]",
             "sku": {
                 "name": "[parameters('storageAccountType')]"
             },
@@ -69,7 +56,7 @@
             "type": "Microsoft.Web/serverfarms",
             "apiVersion": "2020-06-01",
             "name": "[variables('hostingPlanName')]",
-            "location": "[parameters('location')]",
+            "location": "[resourceGroup().location]",
             "sku": {
                 "name": "Y1",
                 "tier": "Dynamic"
@@ -83,7 +70,7 @@
             "type": "Microsoft.Web/sites",
             "apiVersion": "2020-06-01",
             "name": "[variables('functionAppName')]",
-            "location": "[parameters('location')]",
+            "location": "[resourceGroup().location]",
             "kind": "functionapp",
             "dependsOn": [
                 "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
@@ -129,7 +116,7 @@
             "type": "microsoft.insights/components",
             "apiVersion": "2020-02-02-preview",
             "name": "[variables('applicationInsightsName')]",
-            "location": "[parameters('appInsightsLocation')]",
+            "location": "[resourceGroup().location]",
             "tags": {
                 "[concat('hidden-link:', resourceId('Microsoft.Web/sites', variables('applicationInsightsName')))]": "Resource"
             },
