@@ -36,4 +36,4 @@ pools:
   - Development
   - Staging
 
-provider: azure.arm
+provider: markusheiliger/tcrunner-arm
