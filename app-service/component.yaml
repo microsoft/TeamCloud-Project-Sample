@@ -1,0 +1,20 @@
+# Set the component type
+type: Environment
+
+# set the component description
+description: ./readme.md
+
+# Set the component isolation level
+isolation: ResourceGroup
+
+parameters:
+
+
+# Make the following subscription pools available for this component. This section – if defined –
+# overrides the set of subscription pools defined in project manifest file.
+
+pools:
+  - Development
+  - Staging
+
+provider: markusheiliger/tcrunner-terraform
