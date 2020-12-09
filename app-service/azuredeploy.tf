@@ -37,7 +37,7 @@ resource "azurerm_app_service" "test" {
   }
 
   app_settings {
-    "SOME_KEY" = "some-value"
+    SOME_KEY = "some-value"
   }
 
   connection_string {
