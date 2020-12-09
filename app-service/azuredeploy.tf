@@ -1,3 +1,8 @@
+provider "azurerm" {
+  version = "=2.0.0"
+  features {}
+}
+
 resource "random_id" "server" {
   keepers = {
     azi_id = 1
