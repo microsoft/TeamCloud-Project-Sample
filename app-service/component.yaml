@@ -9,6 +9,16 @@ isolation: ResourceGroup
 
 parameters:
 
+  - id: runtime
+    name: Runtime
+    type: string
+    required: true
+    default: dotnet
+    allowed:
+      - node
+      - dotnet
+      - java
+
 
 # Make the following subscription pools available for this component. This section – if defined –
 # overrides the set of subscription pools defined in project manifest file.
