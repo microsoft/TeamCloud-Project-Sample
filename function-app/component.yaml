@@ -34,7 +34,7 @@ parameters:
 
   - id: httpsOnly
     name: HTTPS only
-    type: bool
+    type: boolean
     required: true
     default: true
 
