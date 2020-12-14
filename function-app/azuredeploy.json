@@ -32,6 +32,13 @@
             "metadata": {
                 "description": "Storage Account type"
             }
+        },
+        "httpsOnly": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "HTTPS Only"
+            }
         }
     },
     "variables": {
@@ -77,6 +84,7 @@
                 "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
             ],
             "properties": {
+                "httpsOnly": "[parameters('httpsOnly')]",
                 "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
                 "siteConfig": {
                     "appSettings": [
