@@ -35,7 +35,6 @@ parameters:
   - id: httpsOnly
     name: HTTPS only
     type: boolean
-    required: true
     default: true
 
 # Make the following subscription pools available for this component. This section – if defined –
