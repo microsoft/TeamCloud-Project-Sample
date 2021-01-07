@@ -10,4 +10,11 @@ description: ./readme.md
 # Set the component isolation level
 isolation: ResourceGroup
 
+parameters:
+
+  - id: name
+    name: Name
+    type: string
+    required: false
+
 provider: markusheiliger/tcrunner-act
