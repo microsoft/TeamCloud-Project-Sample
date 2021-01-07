@@ -39,10 +39,9 @@ parameters:
 
 tasks:
 
-  - id: create
-    displayName: ReCreate
-    description: Recreate the component
-
+  - id: reset
+    displayName: Reset
+    description: Reset the component to its original state
 
 # Make the following subscription pools available for this component. This section – if defined –
 # overrides the set of subscription pools defined in project manifest file.
