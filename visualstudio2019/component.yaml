@@ -1,0 +1,44 @@
+# set the display name of the component
+name: VisualStudio 2019
+
+# Set the component type
+type: Environment
+
+# set the component description
+description: ./readme.md
+
+# Set the component isolation level
+isolation: ResourceGroup
+
+parameters:
+
+  - id: adminUsername
+    name: Admin Username
+    type: string
+    required: true
+    default: coder
+
+  - id: adminPassword
+    name: Admin Password
+    type: string
+    required: true
+
+tasks:
+
+  - id: reset
+    name: Reset
+    description: Reset the component to its original state.
+
+  - id: clear
+    name: Clear
+    description: Delete all resources, but keep the component alive.
+
+  - id: start
+    name: Start
+    description: Start all VM resources managed by the component.
+
+  - id: stop
+    name: Stop
+    description: Start and deallocate all VM resources managed by the component
+    
+provider: markusheiliger/tcrunner-arm
