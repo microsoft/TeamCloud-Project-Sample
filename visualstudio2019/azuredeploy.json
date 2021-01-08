@@ -16,7 +16,7 @@
         }
     },
     "variables": {
-        "vmName":"[concat('vm-', uniqueString(resourceGroup().id))]",
+        "vmName":"[take(concat('vm-', uniqueString(resourceGroup().id)), 15)]",
         "subnetName": "VM",
         "virtualNetworkName": "[concat(variables('vmName'), '-vnet')]",
         "publicIpAddressName": "[concat(variables('vmName'), '-ip' )]",
