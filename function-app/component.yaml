@@ -42,20 +42,10 @@ tasks:
   - id: reset
     name: Reset
     description: Reset the component to its original state.
-    parameters:
-
-      - id: dummy
-        name: Dummy
-        type: string
 
   - id: clear
     name: Clear
     description: Delete all resources, but keep the component alive.
-    parameters:
-
-      - id: dummy
-        name: Dummy
-        type: string
 
 # Make the following subscription pools available for this component. This section – if defined –
 # overrides the set of subscription pools defined in project manifest file.
