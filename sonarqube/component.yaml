@@ -1,0 +1,26 @@
+# set the display name of the component
+name: SonarQube LTS
+
+# Set the component type
+type: Environment
+
+# set the component description
+description: ./readme.md
+
+# Set the component isolation level
+isolation: ResourceGroup
+
+parameters:
+
+  - id: adminUsername
+    name: Admin Username
+    type: string
+    required: true
+    default: coder
+
+  - id: adminPassword
+    name: Admin Password
+    type: string
+    required: true
+    
+provider: markusheiliger/tcrunner-arm

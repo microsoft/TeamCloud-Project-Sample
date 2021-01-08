@@ -1,0 +1,131 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "adminUsername": {
+            "type": "string",
+            "minLength": 1,
+            "metadata": {
+                "description": "Azure SQL Server Administrator Username"
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "minLength": 12,
+            "maxLength": 128,
+            "metadata": {
+                "description": "Azure SQL Server Administrator Password"
+            }
+        }
+    },
+    "variables": {
+        "resourcePrefix": "[take(concat('sq-', uniqueString(resourceGroup().id)), 15)]",
+        "resourceLocation": "[resourceGroup().location]",
+        "siteName": "[concat(variables('resourcePrefix'), '-site')]",
+        "databaseName": "sonarqube",
+        "sqlServerName": "[concat(variables('resourcePrefix'), '-sql')]",
+        "servicePlanName": "[concat(variables('resourcePrefix'), '-asp')]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Web/serverfarms",
+            "apiVersion": "2020-06-01",
+            "name": "[variables('servicePlanName')]",
+            "location": "[variables('resourceLocation')]",
+            "properties": {
+                "name": "[variables('servicePlanName')]",
+                "workerSizeId": "1",
+                "reserved": true,
+                "numberOfWorkers": "1"
+            },
+            "sku": {
+                "name": "S2",
+                "tier": "Standard",
+                "capacity": 1
+            },
+            "kind": "linux"
+        },
+        {
+            "type": "Microsoft.Web/sites",
+            "apiVersion": "2020-06-01",
+            "name": "[variables('siteName')]",
+            "location": "[variables('resourceLocation')]",
+            "dependsOn": [
+                "[variables('servicePlanName')]",
+                "[variables('sqlServerName')]"
+            ],
+            "properties": {
+                "siteConfig": {
+                    "linuxFxVersion": "[concat('DOCKER|sonarqube',':','lts')]"
+                },
+                "name": "[variables('siteName')]",
+                "serverFarmId": "[variables('servicePlanName')]"
+            },
+            "resources": [
+                {
+                    "type": "config",
+                    "apiVersion": "2020-06-01",
+                    "name": "appsettings",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Web/sites', variables('siteName'))]"
+                    ],
+                    "tags": {
+                        "displayName": "SonarappSettings"
+                    },
+                    "properties": {
+                        "SONARQUBE_JDBC_URL": "[concat('jdbc:sqlserver://', reference(resourceId('Microsoft.Sql/servers',variables('sqlServerName'))).fullyQualifiedDomainName, ';databaseName=', variables('databaseName'), ';encrypt=true;trustServerCertificate=false;hostNameInCertificate=', replace(reference(resourceId('Microsoft.Sql/servers', variables('sqlServerName'))).fullyQualifiedDomainName, concat(variables('sqlServerName'), '.'), '*.'), ';loginTimeout=30;')]",
+                        "SONARQUBE_JDBC_USERNAME": "[parameters('adminUsername')]",
+                        "SONARQUBE_JDBC_PASSWORD": "[parameters('adminPassword')]",
+                        "sonar.path.data": "/home/sonarqube/data"
+                    }
+                }
+            ]
+        },
+        {
+            "type": "Microsoft.Sql/servers",
+            "apiVersion": "2020-02-02-preview",
+            "location": "[variables('resourceLocation')]",
+            "name": "[variables('sqlServerName')]",
+            "kind": "v12.0",
+            "properties": {
+                "administratorLogin": "[parameters('adminUsername')]",
+                "administratorLoginPassword": "[parameters('adminPassword')]",
+                "version": "12.0"
+            },
+            "resources": [
+                {
+                    "type": "firewallrules",
+                    "apiVersion": "2020-02-02-preview",
+                    "location": "[variables('resourceLocation')]",
+                    "name": "[concat(variables('sqlServerName'),'firewall')]",
+                    "properties": {
+                        "startIpAddress": "0.0.0.0",
+                        "endIpAddress": "0.0.0.0"
+                    },
+                    "dependsOn": [
+                        "[variables('sqlServerName')]"
+                    ]
+                },
+                {
+                    "type": "databases",
+                    "apiVersion": "2020-02-02-preview",
+                    "name": "[variables('databaseName')]",
+                    "location": "[variables('resourceLocation')]",
+                    "sku": {
+                        "name": "GP_S_Gen5_2",
+                        "tier": "GeneralPurpose"
+                    },
+                    "kind": "v12.0,user,vcore",
+                    "properties": {
+                        "collation": "SQL_Latin1_General_CP1_CS_AS",
+                        "catalogCollation": "SQL_Latin1_General_CP1_CI_AS",
+                        "maxSizeBytes": 1024
+                    },
+                    "dependsOn": [
+                        "[variables('sqlServerName')]"
+                    ]
+                }
+            ]
+        }
+    ]
+}
