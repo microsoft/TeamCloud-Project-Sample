@@ -56,7 +56,7 @@
             ],
             "properties": {
                 "siteConfig": {
-                    "linuxFxVersion": "[concat('DOCKER|sonarqube',':','lts')]"
+                    "linuxFxVersion": "[concat('DOCKER|sonarqube',':','7.7-community')]"
                 },
                 "name": "[variables('siteName')]",
                 "serverFarmId": "[variables('servicePlanName')]"
