@@ -21,12 +21,40 @@
     "variables": {
         "resourcePrefix": "[take(concat('sq-', uniqueString(resourceGroup().id)), 15)]",
         "resourceLocation": "[resourceGroup().location]",
+        "storageAccountName": "[replace(variables('resourcePrefix'), '-', '')]",
+        "storageAccountContainers": [ "data", "log", "extensions" ],
         "siteName": "[concat(variables('resourcePrefix'), '-site')]",
         "databaseName": "sonarqube",
         "sqlServerName": "[concat(variables('resourcePrefix'), '-sql')]",
         "servicePlanName": "[concat(variables('resourcePrefix'), '-asp')]"
     },
     "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2019-06-01",
+            "name": "[variables('storageAccountName')]",
+            "location": "[variables('resourceLocation')]",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "StorageV2",
+            "properties": {
+                "accessTier": "Hot"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+            "apiVersion": "2019-06-01",
+            "name": "[concat('default/', variables('storageAccountContainers')[copyIndex()])]",
+            "dependsOn": [
+                "[variables('storageAccountName')]"
+            ],
+            "copy": {
+                "name": "storagecopy",
+                "count": "[length(variables('storageAccountContainers'))]"
+            }
+        },
         {
             "type": "Microsoft.Web/serverfarms",
             "apiVersion": "2020-06-01",
@@ -52,6 +80,7 @@
             "location": "[variables('resourceLocation')]",
             "dependsOn": [
                 "[variables('servicePlanName')]",
+                "[variables('storageAccountName')]",
                 "[variables('sqlServerName')]"
             ],
             "properties": {
