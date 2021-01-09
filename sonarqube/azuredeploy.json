@@ -119,7 +119,7 @@
                     "properties": {
                         "collation": "SQL_Latin1_General_CP1_CS_AS",
                         "catalogCollation": "SQL_Latin1_General_CP1_CI_AS",
-                        "maxSizeBytes": "[mul(5, 1024)]"
+                        "maxSizeBytes": "[mul(mul(mul(5, 1024), 1024), 1024)]"
                     },
                     "dependsOn": [
                         "[variables('sqlServerName')]"
