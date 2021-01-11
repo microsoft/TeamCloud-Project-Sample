@@ -19,12 +19,15 @@ SQHOSTNAME="$(az webapp list --subscription $ComponentSubscription -g "$Componen
 trace "Initializing SonarQube database"
 while true; do
     SQHOSTSTATUS="$(curl -s https://$SQHOSTNAME/api/system/status | jq '.status' | tr -d '"')"
-    [ "$SQHOSTSTATUS" == "UP" ] && { echo -e '\n'; break; } || { echo -n '.'; sleep 5; }
+    [ "$SQHOSTSTATUS" == "UP" ] && { echo '' && break; } || { echo -n '.' && sleep 5; }
 done
 
 SQADMINUSERNAME="admin"
-SQADMINPASSWORD="$( echo "$ComponentTemplateParameters" | jq --raw-output '.adminPassword' )"
+echo "SQADMINUSERNAME=$SQADMINUSERNAME"
+SQADMINPASSWORD="$( echo "$ComponentTemplateParameters" | jq --raw-output '.adminPassword' )" # <== this is where we reference the admin password defined as parameter
+echo "SQADMINPASSWORD=$SQADMINPASSWORD"
 SQADMINTOKEN=$(curl -s -u $SONARQUBE_ADMIN_USER:$SONARQUBE_ADMIN_USER -X POST "https://$SQHOSTNAME/api/user_tokens/generate?name=Configure" | jq .token | tr -d '"')
+echo "SQADMINTOKEN=$SQADMINTOKEN"
 
 trace "Configuring SonarQube users"
 curl -s -u $SQADMINTOKEN: --data-urlencode "password=$SQADMINPASSWORD" -X POST "https://$SQHOSTNAME/api/users/change_password?login=$SQADMINUSERNAME&previousPassword=$SQADMINUSERNAME"
