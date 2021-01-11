@@ -19,7 +19,7 @@ SQHOSTNAME="$(az webapp list --subscription $ComponentSubscription -g "$Componen
 trace "Initializing SonarQube database"
 while [ "$(curl -s https://$SQHOSTNAME/api/system/status | jq '.status' | tr -d '"')" != "UP" ]; do
     SQHOSTSTATUS="$(curl -s https://$SQHOSTNAME/api/system/status | jq '.status' | tr -d '"')"
-    [ "$SQHOSTSTATUR" == "UP" ] && { echo -e '\n'; break } || { echo -n '.'; sleep 5 }
+    [ "$SQHOSTSTATUS" == "UP" ] && { echo -e '\n'; break; } || { echo -n '.'; sleep 5; }
 done
 
 SQADMINUSERNAME="admin"
