@@ -27,5 +27,5 @@ SQADMINPASSWORD="$( echo "$ComponentTemplateParameters" | jq --raw-output '.admi
 SQADMINTOKEN=$(curl -s -u $SONARQUBE_ADMIN_USER:$SONARQUBE_ADMIN_USER -X POST "https://$SQHOSTNAME/api/user_tokens/generate?name=Configure" | jq .token | tr -d '"')
 
 trace "Configuring SonarQube users"
-curl -s -u $SQADMINTOKEN: --data-urlencode "password=$SQADMINPASSWORD" -X POST "http://localhost:9000/api/users/change_password?login=$SQADMINUSERNAME&previousPassword=$SQADMINUSERNAME"
-curl -s -u $SQADMINTOKEN: -X POST 'http://localhost:9000/api/settings/set?key=sonar.forceAuthentication&value=true'
+curl -s -u $SQADMINTOKEN: --data-urlencode "password=$SQADMINPASSWORD" -X POST "https://$SQHOSTNAME/api/users/change_password?login=$SQADMINUSERNAME&previousPassword=$SQADMINUSERNAME"
+curl -s -u $SQADMINTOKEN: -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.forceAuthentication&value=true"
