@@ -22,7 +22,7 @@
         "resourcePrefix": "[take(concat('sq-', uniqueString(resourceGroup().id)), 15)]",
         "resourceLocation": "[resourceGroup().location]",
         "storageAccountName": "[replace(variables('resourcePrefix'), '-', '')]",
-        "storageAccountContainers": [ "data", "log", "extensions", "backup" ],
+        "storageAccountContainers": [ "data", "logs", "extensions", "backup" ],
         "siteName": "[concat(variables('resourcePrefix'), '-web')]",
         "databaseName": "sonarqube",
         "sqlServerName": "[concat(variables('resourcePrefix'), '-sql')]",
@@ -85,7 +85,27 @@
             ],
             "properties": {
                 "siteConfig": {
-                    "linuxFxVersion": "[concat('DOCKER|sonarqube',':','7.7-community')]"
+                    "linuxFxVersion": "[concat('DOCKER|sonarqube',':','7.7-community')]",
+                    "azureStorageAccounts": {
+                        "data": {
+                            "type": "AzureBlob",
+                            "accountName": "[variables('storageAccountName')]",
+                            "shareName": "data",
+                            "mountPath": "/opt/sonarqube/data"
+                        },
+                        "logs": {
+                            "type": "AzureBlob",
+                            "accountName": "[variables('storageAccountName')]",
+                            "shareName": "logs",
+                            "mountPath": "/opt/sonarqube/logs"
+                        },
+                        "extensions": {
+                            "type": "AzureBlob",
+                            "accountName": "[variables('storageAccountName')]",
+                            "shareName": "extensions",
+                            "mountPath": "/opt/sonarqube/extensions"
+                        }
+                    }
                 },
                 "name": "[variables('siteName')]",
                 "serverFarmId": "[variables('servicePlanName')]"
@@ -98,9 +118,6 @@
                     "dependsOn": [
                         "[resourceId('Microsoft.Web/sites', variables('siteName'))]"
                     ],
-                    "tags": {
-                        "displayName": "SonarappSettings"
-                    },
                     "properties": {
                         "SONARQUBE_JDBC_URL": "[concat('jdbc:sqlserver://', reference(resourceId('Microsoft.Sql/servers',variables('sqlServerName'))).fullyQualifiedDomainName, ';databaseName=', variables('databaseName'), ';encrypt=true;trustServerCertificate=false;hostNameInCertificate=', replace(reference(resourceId('Microsoft.Sql/servers', variables('sqlServerName'))).fullyQualifiedDomainName, concat(variables('sqlServerName'), '.'), '*.'), ';loginTimeout=30;')]",
                         "SONARQUBE_JDBC_USERNAME": "[parameters('adminUsername')]",
@@ -109,7 +126,7 @@
                     }
                 }
             ]
-        },
+        },  
         {
             "type": "Microsoft.Sql/servers",
             "apiVersion": "2020-02-02-preview",
