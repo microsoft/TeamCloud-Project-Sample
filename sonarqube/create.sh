@@ -17,7 +17,7 @@ SCRIPT="$(find /docker-runner.d -maxdepth 1 -iname "$(basename "$0")")"
 SQHOSTNAME="$(az webapp list --subscription $ComponentSubscription -g "$ComponentResourceGroup" --query "[0].defaultHostName" -o tsv)"
 
 trace "Initializing SonarQube database"
-while [ "$(curl -s https://$SQHOSTNAME/api/system/status | jq '.status' | tr -d '"')" != "UP" ]; do
+while true; do
     SQHOSTSTATUS="$(curl -s https://$SQHOSTNAME/api/system/status | jq '.status' | tr -d '"')"
     [ "$SQHOSTSTATUS" == "UP" ] && { echo -e '\n'; break; } || { echo -n '.'; sleep 5; }
 done
