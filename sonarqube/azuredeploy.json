@@ -45,7 +45,7 @@
             }
         },
         {
-            "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+            "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
             "apiVersion": "2019-06-01",
             "name": "[concat(variables('storageAccountName'), '/default/', variables('storageAccountContainers')[copyIndex()])]",
             "dependsOn": [
@@ -89,21 +89,21 @@
                     "linuxFxVersion": "[concat('DOCKER|sonarqube',':','7.7-community')]",
                     "azureStorageAccounts": {
                         "data": {
-                            "type": "AzureBlob",
+                            "type": "AzureFiles",
                             "accountName": "[variables('storageAccountName')]",
                             "accessKey": "[listKeys(variables('storageAccountId'), '2019-04-01').keys[0].value]",
                             "shareName": "data",
                             "mountPath": "/opt/sonarqube/data"
                         },
                         "logs": {
-                            "type": "AzureBlob",
+                            "type": "AzureFiles",
                             "accountName": "[variables('storageAccountName')]",
                             "accessKey": "[listKeys(variables('storageAccountId'), '2019-04-01').keys[0].value]",
                             "shareName": "logs",
                             "mountPath": "/opt/sonarqube/logs"
                         },
                         "extensions": {
-                            "type": "AzureBlob",
+                            "type": "AzureFiles",
                             "accountName": "[variables('storageAccountName')]",
                             "accessKey": "[listKeys(variables('storageAccountId'), '2019-04-01').keys[0].value]",
                             "shareName": "extensions",
