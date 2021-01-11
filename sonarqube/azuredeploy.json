@@ -22,6 +22,7 @@
         "resourcePrefix": "[take(concat('sq-', uniqueString(resourceGroup().id)), 15)]",
         "resourceLocation": "[resourceGroup().location]",
         "storageAccountName": "[replace(variables('resourcePrefix'), '-', '')]",
+        "storageAccountId": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
         "storageAccountContainers": [ "data", "logs", "extensions", "backup" ],
         "siteName": "[concat(variables('resourcePrefix'), '-web')]",
         "databaseName": "sonarqube",
@@ -90,18 +91,21 @@
                         "data": {
                             "type": "AzureBlob",
                             "accountName": "[variables('storageAccountName')]",
+                            "accessKey": "[listKeys(variables('storageAccountId'), '2019-04-01').keys[0].value]",
                             "shareName": "data",
                             "mountPath": "/opt/sonarqube/data"
                         },
                         "logs": {
                             "type": "AzureBlob",
                             "accountName": "[variables('storageAccountName')]",
+                            "accessKey": "[listKeys(variables('storageAccountId'), '2019-04-01').keys[0].value]",
                             "shareName": "logs",
                             "mountPath": "/opt/sonarqube/logs"
                         },
                         "extensions": {
                             "type": "AzureBlob",
                             "accountName": "[variables('storageAccountName')]",
+                            "accessKey": "[listKeys(variables('storageAccountId'), '2019-04-01').keys[0].value]",
                             "shareName": "extensions",
                             "mountPath": "/opt/sonarqube/extensions"
                         }
