@@ -22,8 +22,8 @@
         "resourcePrefix": "[take(concat('sq-', uniqueString(resourceGroup().id)), 15)]",
         "resourceLocation": "[resourceGroup().location]",
         "storageAccountName": "[replace(variables('resourcePrefix'), '-', '')]",
-        "storageAccountContainers": [ "data", "log", "extensions" ],
-        "siteName": "[concat(variables('resourcePrefix'), '-site')]",
+        "storageAccountContainers": [ "data", "log", "extensions", "backup" ],
+        "siteName": "[concat(variables('resourcePrefix'), '-web')]",
         "databaseName": "sonarqube",
         "sqlServerName": "[concat(variables('resourcePrefix'), '-sql')]",
         "servicePlanName": "[concat(variables('resourcePrefix'), '-asp')]"
