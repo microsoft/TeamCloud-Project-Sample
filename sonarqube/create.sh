@@ -26,7 +26,7 @@ SQADMINUSERNAME="admin"
 echo "SQADMINUSERNAME=$SQADMINUSERNAME"
 SQADMINPASSWORD="$( echo "$ComponentTemplateParameters" | jq --raw-output '.adminPassword' )" # <== this is where we reference the admin password defined as parameter
 echo "SQADMINPASSWORD=$SQADMINPASSWORD"
-SQADMINTOKEN="$(curl -s -u $SONARQUBE_ADMIN_USER:$SONARQUBE_ADMIN_USER -d "" -X POST "https://$SQHOSTNAME/api/user_tokens/generate?name=$(uuidgen)" | jq .token | tr -d '"')"
+SQADMINTOKEN="$( curl -s -u $SONARQUBE_ADMIN_USER:$SONARQUBE_ADMIN_USER -d "" -X POST "https://$SQHOSTNAME/api/user_tokens/generate?name=$(uuidgen)" | jq --raw-output '.token' )"
 echo "SQADMINTOKEN=$SQADMINTOKEN"
 
 trace "Configuring SonarQube users"
