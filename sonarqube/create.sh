@@ -14,13 +14,16 @@ SCRIPT="$(find /docker-runner.d -maxdepth 1 -iname "$(basename "$0")")"
 # isolate task script execution in sub shell  
 ( exec "$SCRIPT"; exit $? ) || exit $?
 
+SQWEBAPPID="$(az webapp list --subscription $ComponentSubscription -g "$ComponentResourceGroup" --query "[0].id" -o tsv)"
 SQHOSTNAME="$(az webapp list --subscription $ComponentSubscription -g "$ComponentResourceGroup" --query "[0].defaultHostName" -o tsv)"
+SQACCNAME="$(az storage account list --subscription $ComponentSubscription -g "$ComponentResourceGroup" --query "[0].name" -o tsv)"
+SQACCKEY="$(az storage account keys list --subscription $ComponentSubscription -g "$ComponentResourceGroup" -n "$SQACCNAME" --query "[0].value" -o tsv)"
 
 trace "Initializing SonarQube database"
 while true; do
     SQHOSTSTATUS="$(curl -s https://$SQHOSTNAME/api/system/status | jq --raw-output '.status')"
     [ "$?" != "0" ] && exit $? # request or result parsing failed - exit the script !!!
-    [ "$SQHOSTSTATUS" == "UP" ] && { echo '' && break; } || { echo -n '.' && sleep 5; }
+    [ "$SQHOSTSTATUS" == "UP" ] && { echo ' done' && break; } || { echo -n '.' && sleep 5; }
 done
 
 trace "Configuring SonarQube service"
@@ -50,6 +53,14 @@ AADCLIENTSECRET=""
 
 echo "- Configure authentication"
 curl -s -o /dev/null -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.forceAuthentication&value=true"
+
+echo "- Installing plugin: sonar-auth-aad-plugin-1.1.jar"
+[ "$( az storage file exists --subscription $ComponentSubscription --account-name "$SQACCNAME" --account-key "$SQACCKEY" --share-name "extensions" --path "plugins/sonar-auth-aad-plugin-1.1.jar" --query "exists" -o tsv)" == "false" ] && {  
+    curl -s "https://github.com/hkamel/sonar-auth-aad/releases/download/1.1/sonar-auth-aad-plugin-1.1.jar" --output "/var/tmp/sonar-auth-aad-plugin-1.1.jar" 
+    az storage file upload --subscription $ComponentSubscription --account-name "$SQACCNAME" --account-key "$SQACCKEY" --share-name "extensions" --path "plugins/sonar-auth-aad-plugin-1.1.jar" --source "/var/tmp/sonar-auth-aad-plugin-1.1.jar"
+}
+
+echo "- Configuring plugin: sonar-auth-aad-plugin-1.1.jar"
 curl -s -o /dev/null -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/plugins/install?key=authaad"
 curl -s -o /dev/null -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.auth.aad.enabled&value=true"
 curl -s -o /dev/null -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.auth.aad.clientId.secured&value=$AADCLIENTID"
@@ -59,3 +70,12 @@ curl -s -o /dev/null -u $SQTOKEN: --data-urlencode "value=Same as Azure AD login
 curl -s -o /dev/null -u $SQTOKEN: --data-urlencode "value=https://$SQHOSTNAME" -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.core.serverBaseURL"
 curl -s -o /dev/null -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.authenticator.downcase&value=true"
 curl -s -o /dev/null -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.auth.aad.allowUsersToSignUp&value=false"
+
+trace "Restarting SonarQube service"
+az webapp restart --ids ${SQWEBAPPID}
+
+while true; do
+    SQHOSTSTATUS="$(curl -s https://$SQHOSTNAME/api/system/status | jq --raw-output '.status')"
+    [ "$?" != "0" ] && exit $? # request or result parsing failed - exit the script !!!
+    [ "$SQHOSTSTATUS" == "UP" ] && { echo ' done' && break; } || { echo -n '.' && sleep 5; }
+done
