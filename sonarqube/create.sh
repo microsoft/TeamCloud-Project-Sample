@@ -20,11 +20,11 @@ SQACCNAME="$(az storage account list --subscription $ComponentSubscription -g "$
 SQACCKEY="$(az storage account keys list --subscription $ComponentSubscription -g "$ComponentResourceGroup" -n "$SQACCNAME" --query "[0].value" -o tsv)"
 
 trace "Initializing SonarQube"
-echo -n "Web: " && until $(curl -o /dev/null --silent --head --fail https://$SQHOSTNAME); do
+echo -n "Web: ." && until $(curl -o /dev/null --silent --head --fail https://$SQHOSTNAME); do
     echo -n '.' && sleep 5
 done && echo ' done'
 
-echo -n "API: " && while [ "$(curl -s https://$SQHOSTNAME/api/system/status | jq --raw-output '.status')" == "UP" ]; do
+echo -n "API: ." && while [ "$(curl -s https://$SQHOSTNAME/api/system/status | jq --raw-output '.status')" == "UP" ]; do
     echo -n '.' && sleep 5
 done && echo ' done'
 
