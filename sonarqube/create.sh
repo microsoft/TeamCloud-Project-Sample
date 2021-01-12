@@ -8,6 +8,16 @@ error() {
     echo "Error: $@" 1>&2
 }
 
+waitFor() {
+    echo -n "Web: ." && until $(curl -o /dev/null --silent --head --fail https://$1); do
+        echo -n '.' && sleep 5
+    done && echo ' done'
+
+    echo -n "API: ." && while [ "$(curl -s https://$1/api/system/status | jq --raw-output '.status')" == "UP" ]; do
+        echo -n '.' && sleep 5
+    done && echo ' done'
+}
+
 # get the default runner script path to execute first before adding custom stuff
 SCRIPT="$(find /docker-runner.d -maxdepth 1 -iname "$(basename "$0")")"
 
@@ -20,13 +30,7 @@ SQACCNAME="$(az storage account list --subscription $ComponentSubscription -g "$
 SQACCKEY="$(az storage account keys list --subscription $ComponentSubscription -g "$ComponentResourceGroup" -n "$SQACCNAME" --query "[0].value" -o tsv)"
 
 trace "Initializing SonarQube"
-echo -n "Web: ." && until $(curl -o /dev/null --silent --head --fail https://$SQHOSTNAME); do
-    echo -n '.' && sleep 5
-done && echo ' done'
-
-echo -n "API: ." && while [ "$(curl -s https://$SQHOSTNAME/api/system/status | jq --raw-output '.status')" == "UP" ]; do
-    echo -n '.' && sleep 5
-done && echo ' done'
+echo "$SQHOSTNAME" | waitFor
 
 trace "Configuring SonarQube"
 
@@ -74,13 +78,6 @@ curl -s -o /dev/null -u $SQTOKEN: --data-urlencode "value=https://$SQHOSTNAME" -
 curl -s -o /dev/null -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.authenticator.downcase&value=true"
 curl -s -o /dev/null -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.auth.aad.allowUsersToSignUp&value=false"
 
-trace "Restarting SonarQube service"
+trace "Restarting SonarQube"
 az webapp restart --ids ${SQWEBAPPID}
-
-echo -n "Web: " && until $(curl -o /dev/null --silent --head --fail https://$SQHOSTNAME); do
-    echo -n '.' && sleep 5
-done && echo ' done'
-
-echo -n "API: " && while [ "$(curl -s https://$SQHOSTNAME/api/system/status | jq --raw-output '.status')" == "UP" ]; do
-    echo -n '.' && sleep 5
-done && echo ' done'
+sleep 5 && echo "$SQHOSTNAME" | waitFor
