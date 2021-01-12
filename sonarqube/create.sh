@@ -32,21 +32,29 @@ SQSCANNERPASSWORD="$( uuidgen | tr -d '-' )"
 # fetch an access token using the default admin password - if this works, the current SQ instance is completely unconfigurated
 SQTOKEN="$( curl -s -u $SQADMINUSERNAME:$SQADMINUSERNAME -d "" -X POST "https://$SQHOSTNAME/api/user_tokens/generate?name=$(uuidgen)" | jq --raw-output '.token' )"
 
-if [ ! -z "$SQTOKEN" ]; then
-    echo "- Initializing user: admin" # the admin password was still set to its default value. therefore we received a valid token and need to update the admin's password first
-    curl -s -u $SQTOKEN: --data-urlencode "password=$SQADMINPASSWORD" -X POST "https://$SQHOSTNAME/api/users/change_password?login=$SQADMINUSERNAME&previousPassword=$SQADMINUSERNAME"
-fi
+echo "- Initializing user: admin" # if the admin password was still set to its default value we should have received a token now and can change the default password to the provided one.
+[ ! -z "$SQTOKEN" ] && curl -s -u $SQTOKEN: --data-urlencode "password=$SQADMINPASSWORD" -X POST "https://$SQHOSTNAME/api/users/change_password?login=$SQADMINUSERNAME&previousPassword=$SQADMINUSERNAME"
 
 # refresh the admin token to do further configuration tasks - this time we use the password provided by the component input json
 SQTOKEN="$( curl -s -u $SQADMINUSERNAME:$SQADMINPASSWORD -d "" -X POST "https://$SQHOSTNAME/api/user_tokens/generate?name=$(uuidgen)" | jq --raw-output '.token' )"
 
 echo "- Initialize user: scanner"
-SQSTATUS="$( curl -s -o /dev/null -w "%{http_code}" -u $SQTOKEN: --data-urlencode "name=$SQSCANNERUSERNAME" -X POST "https://$SQHOSTNAME/api/users/create?login=$SQSCANNERUSERNAME&password=$SQSCANNERPASSWORD" )"
+curl -s -o /dev/null -w "%{http_code}" -u $SQTOKEN: --data-urlencode "name=$SQSCANNERUSERNAME" -X POST "https://$SQHOSTNAME/api/users/create?login=$SQSCANNERUSERNAME&password=$SQSCANNERPASSWORD"
+curl -s -o /dev/null -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/permissions/add_user?login=$SQSCANNERUSERNAME&permission=scan"
+curl -s -o /dev/null -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/permissions/add_user?login=$SQSCANNERUSERNAME&permission=provisioning"
 
-if [ "$SQSTATUS" == "200" ]; then 
-    curl -s -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/permissions/add_user?login=$SQSCANNERUSERNAME&permission=scan"
-    curl -s -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/permissions/add_user?login=$SQSCANNERUSERNAME&permission=provisioning"
-fi
+AADTENANTID=""
+AADCLIENTID=""
+AADCLIENTSECRET=""
 
 echo "- Configure authentication"
-curl -s -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.forceAuthentication&value=true"
+curl -s -o /dev/null -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.forceAuthentication&value=true"
+curl -s -o /dev/null -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/plugins/install?key=authaad"
+curl -s -o /dev/null -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.auth.aad.enabled&value=true"
+curl -s -o /dev/null -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.auth.aad.clientId.secured&value=$AADCLIENTID"
+curl -s -o /dev/null -u $SQTOKEN: --data-urlencode "value=$AADCLIENTSECRET" -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.auth.aad.clientSecret.secured"
+curl -s -o /dev/null -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.auth.aad.tenantId&value=$AADTENANTID"
+curl -s -o /dev/null -u $SQTOKEN: --data-urlencode "value=Same as Azure AD login" -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.auth.aad.loginStrategy"
+curl -s -o /dev/null -u $SQTOKEN: --data-urlencode "value=https://$SQHOSTNAME" -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.core.serverBaseURL"
+curl -s -o /dev/null -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.authenticator.downcase&value=true"
+curl -s -o /dev/null -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.auth.aad.allowUsersToSignUp&value=false"
