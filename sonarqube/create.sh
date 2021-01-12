@@ -57,6 +57,7 @@ curl -s -o /dev/null -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/setting
 echo "- Installing plugin: sonar-auth-aad-plugin-1.1.jar"
 [ "$( az storage file exists --subscription $ComponentSubscription --account-name "$SQACCNAME" --account-key "$SQACCKEY" --share-name "extensions" --path "plugins/sonar-auth-aad-plugin-1.1.jar" --query "exists" -o tsv)" == "false" ] && {  
     curl -s "https://github.com/hkamel/sonar-auth-aad/releases/download/1.1/sonar-auth-aad-plugin-1.1.jar" --output "/var/tmp/sonar-auth-aad-plugin-1.1.jar" 
+    az storage directory create --subscription $ComponentSubscription --account-name "$SQACCNAME" --account-key "$SQACCKEY" --share-name "extensions" --name "plugins" 
     az storage file upload --subscription $ComponentSubscription --account-name "$SQACCNAME" --account-key "$SQACCKEY" --share-name "extensions" --path "plugins/sonar-auth-aad-plugin-1.1.jar" --source "/var/tmp/sonar-auth-aad-plugin-1.1.jar"
 }
 
