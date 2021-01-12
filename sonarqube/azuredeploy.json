@@ -86,7 +86,7 @@
             ],
             "properties": {
                 "siteConfig": {
-                    "linuxFxVersion": "[concat('DOCKER|sonarqube',':','7.9-community')]",
+                    "linuxFxVersion": "[concat('DOCKER|sonarqube',':','7.7-community')]",
                     "azureStorageAccounts": {
                         "data": {
                             "type": "AzureFiles",

@@ -18,7 +18,8 @@ SQHOSTNAME="$(az webapp list --subscription $ComponentSubscription -g "$Componen
 
 trace "Initializing SonarQube database"
 while true; do
-    SQHOSTSTATUS="$(curl -s https://$SQHOSTNAME/api/system/status | jq '.status' | tr -d '"')"
+    SQHOSTSTATUS="$(curl -s https://$SQHOSTNAME/api/system/status | jq --raw-output '.status')"
+    [ "$?" != "0" ] && exit $? # request or result parsing failed - exit the script !!!
     [ "$SQHOSTSTATUS" == "UP" ] && { echo '' && break; } || { echo -n '.' && sleep 5; }
 done
 
