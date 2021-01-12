@@ -22,13 +22,29 @@ while true; do
     [ "$SQHOSTSTATUS" == "UP" ] && { echo '' && break; } || { echo -n '.' && sleep 5; }
 done
 
-SQADMINUSERNAME="admin"
-echo "SQADMINUSERNAME=$SQADMINUSERNAME"
-SQADMINPASSWORD="$( echo "$ComponentTemplateParameters" | jq --raw-output '.adminPassword' )" # <== this is where we reference the admin password defined as parameter
-echo "SQADMINPASSWORD=$SQADMINPASSWORD"
-SQADMINTOKEN="$( curl -s -u $SQADMINUSERNAME:$SQADMINUSERNAME -d "" -X POST "https://$SQHOSTNAME/api/user_tokens/generate?name=$(uuidgen)" | jq --raw-output '.token' )"
-echo "SQADMINTOKEN=$SQADMINTOKEN"
+trace "Configuring SonarQube service"
 
-trace "Configuring SonarQube users"
-curl -s -u $SQADMINTOKEN: --data-urlencode "password=$SQADMINPASSWORD" -X POST "https://$SQHOSTNAME/api/users/change_password?login=$SQADMINUSERNAME&previousPassword=$SQADMINUSERNAME"
-curl -s -u $SQADMINTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.forceAuthentication&value=true"
+SQADMINUSERNAME="admin"
+SQADMINPASSWORD="$( echo "$ComponentTemplateParameters" | jq --raw-output '.adminPassword' )" # <== this is where we reference the admin password defined as parameter
+SQSCANNERUSERNAME="scanner"
+SQSCANNERPASSWORD="$( uuidgen | tr -d '-' )"
+
+# fetch an access token using the default admin password - if this works, the current SQ instance is completely unconfigurated
+SQTOKEN="$( curl -s -u $SQADMINUSERNAME:$SQADMINUSERNAME -d "" -X POST "https://$SQHOSTNAME/api/user_tokens/generate?name=$(uuidgen)" | jq --raw-output '.token' )"
+
+if [ ! -z "$SQTOKEN" ]; then
+    echo "- Initializing admin user" # the admin password was still set to its default value. therefore we received a valid token and need to update the admin's password first
+    curl -s -u $SQTOKEN: --data-urlencode "password=$SQADMINPASSWORD" -X POST "https://$SQHOSTNAME/api/users/change_password?login=$SQADMINUSERNAME&previousPassword=$SQADMINUSERNAME"
+fi
+
+# refresh the admin token to do further configuration tasks - this time we use the password provided by the component input json
+SQTOKEN="$( curl -s -u $SQADMINUSERNAME:$SQADMINPASSWORD -d "" -X POST "https://$SQHOSTNAME/api/user_tokens/generate?name=$(uuidgen)" | jq --raw-output '.token' )"
+
+
+echo "-Initialize scanner user"
+curl -s -u $SQTOKEN: --data-urlencode "name=$SQSCANNERUSERNAME" -X POST "https://$SQHOSTNAME/api/users/create?login=$SQSCANNERUSERNAME&password=$SQSCANNERPASSWORD"
+curl -s -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/permissions/add_user?login=$SQSCANNERUSERNAME&permission=scan"
+curl -s -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/permissions/add_user?login=$SQSCANNERUSERNAME&permission=provisioning"
+
+echo "- Enforce authentication"
+curl -s -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.forceAuthentication&value=true"
