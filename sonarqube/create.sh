@@ -12,13 +12,18 @@ waitFor() {
     if (( $# == 0 )) ; then
         while read data; do waitFor $data; done;
     else
-        echo -n "Web ($1): ." && until $(curl -o /dev/null --silent --head --fail https://$1); do
-            echo -n '.' && sleep 5
-        done && echo ' done'
+        { timeout --foreground 1m bash <<EOL
+        {
+            echo -n "Web ($1): ." && until [ $(curl -o /dev/null --silent --fail https://$1) ]; do
+                echo -n '.' && sleep 5
+            done && echo ' done'
 
-        echo -n "API ($1): ." && until [ "$(curl -s https://$1/api/system/status | jq --raw-output '.status')" == "UP" ]; do
-            echo -n '.' && sleep 5
-        done && echo ' done'
+            echo -n "API ($1): ." && until [ "$(curl -s https://$1/api/system/status | jq --raw-output '.status')" == "UP" ]; do
+                echo -n '.' && sleep 5
+            done && echo ' done'
+        }
+EOL
+        } || echo ' timeout' && exit 1
     fi
 }
 
