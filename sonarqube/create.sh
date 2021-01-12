@@ -33,18 +33,20 @@ SQSCANNERPASSWORD="$( uuidgen | tr -d '-' )"
 SQTOKEN="$( curl -s -u $SQADMINUSERNAME:$SQADMINUSERNAME -d "" -X POST "https://$SQHOSTNAME/api/user_tokens/generate?name=$(uuidgen)" | jq --raw-output '.token' )"
 
 if [ ! -z "$SQTOKEN" ]; then
-    echo "- Initializing admin user" # the admin password was still set to its default value. therefore we received a valid token and need to update the admin's password first
+    echo "- Initializing user: admin" # the admin password was still set to its default value. therefore we received a valid token and need to update the admin's password first
     curl -s -u $SQTOKEN: --data-urlencode "password=$SQADMINPASSWORD" -X POST "https://$SQHOSTNAME/api/users/change_password?login=$SQADMINUSERNAME&previousPassword=$SQADMINUSERNAME"
 fi
 
 # refresh the admin token to do further configuration tasks - this time we use the password provided by the component input json
 SQTOKEN="$( curl -s -u $SQADMINUSERNAME:$SQADMINPASSWORD -d "" -X POST "https://$SQHOSTNAME/api/user_tokens/generate?name=$(uuidgen)" | jq --raw-output '.token' )"
 
+echo "- Initialize user: scanner"
+SQSTATUS="$( curl -s -o /dev/null -w "%{http_code}" -u $SQTOKEN: --data-urlencode "name=$SQSCANNERUSERNAME" -X POST "https://$SQHOSTNAME/api/users/create?login=$SQSCANNERUSERNAME&password=$SQSCANNERPASSWORD" )"
 
-echo "-Initialize scanner user"
-curl -s -u $SQTOKEN: --data-urlencode "name=$SQSCANNERUSERNAME" -X POST "https://$SQHOSTNAME/api/users/create?login=$SQSCANNERUSERNAME&password=$SQSCANNERPASSWORD"
-curl -s -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/permissions/add_user?login=$SQSCANNERUSERNAME&permission=scan"
-curl -s -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/permissions/add_user?login=$SQSCANNERUSERNAME&permission=provisioning"
+if [ "$SQSTATUS" == "200" ]; then 
+    curl -s -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/permissions/add_user?login=$SQSCANNERUSERNAME&permission=scan"
+    curl -s -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/permissions/add_user?login=$SQSCANNERUSERNAME&permission=provisioning"
+fi
 
-echo "- Enforce authentication"
+echo "- Configure authentication"
 curl -s -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/settings/set?key=sonar.forceAuthentication&value=true"
