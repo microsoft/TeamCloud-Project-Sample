@@ -9,13 +9,17 @@ error() {
 }
 
 waitFor() {
-    echo -n "Web: ." && until $(curl -o /dev/null --silent --head --fail https://$1); do
-        echo -n '.' && sleep 5
-    done && echo ' done'
+    if (( $# == 0 )) ; then
+        while read data; do waitFor $data; done;
+    else
+        echo -n "Web ($1): ." && until $(curl -o /dev/null --silent --head --fail https://$1); do
+            echo -n '.' && sleep 5
+        done && echo ' done'
 
-    echo -n "API: ." && while [ "$(curl -s https://$1/api/system/status | jq --raw-output '.status')" == "UP" ]; do
-        echo -n '.' && sleep 5
-    done && echo ' done'
+        echo -n "API ($1): ." && until [ "$(curl -s https://$1/api/system/status | jq --raw-output '.status')" == "UP" ]; do
+            echo -n '.' && sleep 5
+        done && echo ' done'
+    fi
 }
 
 # get the default runner script path to execute first before adding custom stuff
