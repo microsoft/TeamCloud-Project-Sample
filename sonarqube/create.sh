@@ -12,7 +12,7 @@ waitFor() {
     if (( $# == 0 )) ; then
         while read data; do waitFor $data; done;
     else
-        { timeout --foreground 1m bash <<EOL
+        { timeout 1m bash <<EOL
         {
             echo -n "Web ($1): ." && until [ $(curl -o /dev/null --silent --fail https://$1) ]; do
                 echo -n '.' && sleep 5
