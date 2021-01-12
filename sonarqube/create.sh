@@ -19,14 +19,16 @@ SQHOSTNAME="$(az webapp list --subscription $ComponentSubscription -g "$Componen
 SQACCNAME="$(az storage account list --subscription $ComponentSubscription -g "$ComponentResourceGroup" --query "[0].name" -o tsv)"
 SQACCKEY="$(az storage account keys list --subscription $ComponentSubscription -g "$ComponentResourceGroup" -n "$SQACCNAME" --query "[0].value" -o tsv)"
 
-trace "Initializing SonarQube database"
-while true; do
-    SQHOSTSTATUS="$(curl -s https://$SQHOSTNAME/api/system/status | jq --raw-output '.status')"
-    [ "$?" != "0" ] && exit $? # request or result parsing failed - exit the script !!!
-    [ "$SQHOSTSTATUS" == "UP" ] && { echo ' done' && break; } || { echo -n '.' && sleep 5; }
-done
+trace "Initializing SonarQube"
+echo -n "Web: " && until $(curl -o /dev/null --silent --head --fail https://$SQHOSTNAME); do
+    echo -n '.' && sleep 5
+done && echo ' done'
 
-trace "Configuring SonarQube service"
+echo -n "API: " && while [ "$(curl -s https://$SQHOSTNAME/api/system/status | jq --raw-output '.status')" == "UP" ]; do
+    echo -n '.' && sleep 5
+done && echo ' done'
+
+trace "Configuring SonarQube"
 
 SQADMINUSERNAME="admin"
 SQADMINPASSWORD="$( echo "$ComponentTemplateParameters" | jq --raw-output '.adminPassword' )" # <== this is where we reference the admin password defined as parameter
@@ -75,8 +77,10 @@ curl -s -o /dev/null -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/setting
 trace "Restarting SonarQube service"
 az webapp restart --ids ${SQWEBAPPID}
 
-while true; do
-    SQHOSTSTATUS="$(curl -s https://$SQHOSTNAME/api/system/status | jq --raw-output '.status')"
-    [ "$?" != "0" ] && exit $? # request or result parsing failed - exit the script !!!
-    [ "$SQHOSTSTATUS" == "UP" ] && { echo ' done' && break; } || { echo -n '.' && sleep 5; }
-done
+echo -n "Web: " && until $(curl -o /dev/null --silent --head --fail https://$SQHOSTNAME); do
+    echo -n '.' && sleep 5
+done && echo ' done'
+
+echo -n "API: " && while [ "$(curl -s https://$SQHOSTNAME/api/system/status | jq --raw-output '.status')" == "UP" ]; do
+    echo -n '.' && sleep 5
+done && echo ' done'
