@@ -12,12 +12,17 @@ waitFor() {
     if (( $# == 0 )) ; then
         while read data; do waitFor $data; done;
     else
+        local RETRYMAX=60
+        local RETRY=0
+
         echo -n "Web ($1): ." && until [ $(curl -o /dev/null --silent --fail https://$1) ]; do
-            [ "$(curl -s -o /dev/null -I -w "%{http_code}" https://$1)" == "503" ] && ( echo ' failed' && exit 1 ) || ( echo -n '.' && sleep 5 )
+             ((RETRY=RETRY+1)) && [ $RETRY > $RETRYMAX ] && ( echo ' timeout' && exit 1 ) || ( echo -n '.' && sleep 5 )
         done && echo ' done'
 
+        RETRY=0
+
         echo -n "API ($1): ." && until [ "$(curl -s https://$1/api/system/status | jq --raw-output '.status')" == "UP" ]; do
-            echo -n '.' && sleep 5
+            ((RETRY=RETRY+1)) && [ $RETRY > $RETRYMAX ] && ( echo ' timeout' && exit 1 ) || ( echo -n '.' && sleep 5 )
         done && echo ' done'
     fi
 }
