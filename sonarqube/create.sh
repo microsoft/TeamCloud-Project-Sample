@@ -32,13 +32,13 @@ SQSCANNERPASSWORD="$( uuidgen | tr -d '-' )"
 # fetch an access token using the default admin password - if this works, the current SQ instance is completely unconfigurated
 SQTOKEN="$( curl -s -u $SQADMINUSERNAME:$SQADMINUSERNAME -d "" -X POST "https://$SQHOSTNAME/api/user_tokens/generate?name=$(uuidgen)" | jq --raw-output '.token' )"
 
-echo "- Initializing user: admin" # if the admin password was still set to its default value we should have received a token now and can change the default password to the provided one.
+echo "- Initializing system user: admin" # if the admin password was still set to its default value we should have received a token now and can change the default password to the provided one.
 [ ! -z "$SQTOKEN" ] && curl -s -u $SQTOKEN: --data-urlencode "password=$SQADMINPASSWORD" -X POST "https://$SQHOSTNAME/api/users/change_password?login=$SQADMINUSERNAME&previousPassword=$SQADMINUSERNAME"
 
 # refresh the admin token to do further configuration tasks - this time we use the password provided by the component input json
 SQTOKEN="$( curl -s -u $SQADMINUSERNAME:$SQADMINPASSWORD -d "" -X POST "https://$SQHOSTNAME/api/user_tokens/generate?name=$(uuidgen)" | jq --raw-output '.token' )"
 
-echo "- Initialize user: scanner"
+echo "- Initializing system user: scanner"
 curl -s -o /dev/null -u $SQTOKEN: --data-urlencode "name=$SQSCANNERUSERNAME" -X POST "https://$SQHOSTNAME/api/users/create?login=$SQSCANNERUSERNAME&password=$SQSCANNERPASSWORD"
 curl -s -o /dev/null -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/permissions/add_user?login=$SQSCANNERUSERNAME&permission=scan"
 curl -s -o /dev/null -u $SQTOKEN: -d "" -X POST "https://$SQHOSTNAME/api/permissions/add_user?login=$SQSCANNERUSERNAME&permission=provisioning"
