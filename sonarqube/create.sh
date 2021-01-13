@@ -16,7 +16,7 @@ waitFor() {
         local RETRYWEB=0
         local RETRYAPI=0
 
-        echo -n "Web ($1): ." && until [ $(curl -o /dev/null --silent --fail https://$1) ]; do
+        echo -n "Web ($1): ." && until [ "$(curl -s -o /dev/null -I -w "%{http_code}" https://$1)" == "200" ]; do
              ((RETRYWEB=RETRYWEB+1)) && [ "$RETRYWEB" -gt "$RETRYMAX" ] && ( echo " timeout after $RETRYMAX retries" && exit 1 ) || ( echo -n '.' && sleep 5 )
         done && echo ' done'
 
