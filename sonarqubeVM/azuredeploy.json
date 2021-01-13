@@ -1,34 +1,45 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-    "contentVersion": "1.0.0.0",
-    "parameters": {
-        "adminUsername": {
-            "type": "string",
-            "minLength": 1,
-            "metadata": {
-                "description": "Azure SQL Server Administrator Username"
-            }
-        },
-        "adminPassword": {
-            "type": "securestring",
-            "minLength": 12,
-            "maxLength": 128,
-            "metadata": {
-                "description": "Azure SQL Server Administrator Password"
-            }
-        }
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "adminUsername": {
+      "type": "string",
+      "minLength": 1,
+      "metadata": {
+        "description": "Azure SQL Server Administrator Username"
+      }
     },
-    "variables": {
-        "resourcePrefix": "[take(concat('sq-', uniqueString(resourceGroup().id)), 15)]",
-        "resourceLocation": "[resourceGroup().location]",
-        "virtualMachineName": "[concat(variables('resourcePrefix'), '-vm')]",
-        "virtualNetworkName": "[concat(variables('resourcePrefix'), '-vnet')]",
-        "virtualSubnetName": "sonarqube",
-        "virtualSubnetId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('virtualSubnetName'))]",
-        "networkInterfaceName": "[concat(variables('resourcePrefix'), '-nic')]",
-        "networkSecurityGroupName": "[concat(variables('resourcePrefix'), '-nsg')]",
-        "publicIpAddressName":  "[concat(variables('resourcePrefix'), '-pip')]"
+    "adminPassword": {
+      "type": "securestring",
+      "minLength": 12,
+      "maxLength": 128,
+      "metadata": {
+        "description": "Azure SQL Server Administrator Password"
+      }
     },
+    "_artifactsLocation": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "_artifactsLocationSasToken": {
+      "type": "securestring",
+      "defaultValue": ""
+    }
+  },
+  "variables": {
+    "serviceName": "sonarqube",
+    "resourcePrefix": "[take(concat('sq-', uniqueString(resourceGroup().id)), 15)]",
+    "resourceLocation": "[resourceGroup().location]",
+    "virtualMachineName": "[concat(variables('resourcePrefix'), '-vm')]",
+    "virtualNetworkName": "[concat(variables('resourcePrefix'), '-vnet')]",
+    "virtualSubnetName": "[variables('serviceName')]",
+    "virtualSubnetId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('virtualSubnetName'))]",
+    "networkInterfaceName": "[concat(variables('resourcePrefix'), '-nic')]",
+    "networkSecurityGroupName": "[concat(variables('resourcePrefix'), '-nsg')]",
+    "publicIpAddressName": "[concat(variables('resourcePrefix'), '-pip')]",
+    "sqlServerName": "[concat(variables('resourcePrefix'), '-sql')]",
+    "sqlDatabaseName": "[variables('serviceName')]"
+  },
   "resources": [
     {
       "type": "Microsoft.Network/networkInterfaces",
@@ -79,6 +90,32 @@
               "destinationAddressPrefix": "*",
               "destinationPortRange": "22"
             }
+          },
+          {
+            "name": "HTTP",
+            "properties": {
+              "priority": 1010,
+              "protocol": "TCP",
+              "access": "Allow",
+              "direction": "Inbound",
+              "sourceAddressPrefix": "*",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "80"
+            }
+          },
+          {
+            "name": "HTTPS",
+            "properties": {
+              "priority": 1020,
+              "protocol": "TCP",
+              "access": "Allow",
+              "direction": "Inbound",
+              "sourceAddressPrefix": "*",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "443"
+            }
           }
         ]
       }
@@ -125,12 +162,70 @@
       }
     },
     {
+      "type": "Microsoft.Sql/servers",
+      "name": "[variables('sqlServerName')]",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-05-01-preview",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+      ],
+      "properties": {
+        "administratorLogin": "[parameters('adminUsername')]",
+        "administratorLoginPassword": "[parameters('adminPassword')]",
+        "version": "12.0"
+      },
+      "resources": [
+        {
+          "type": "databases",
+          "name": "[variables('sqlDatabaseName')]",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2015-01-01",
+          "dependsOn": [
+            "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
+          ],
+          "properties": {
+            "edition": "Basic",
+            "collation": "Latin1_General_CS_AS",
+            "maxSizeBytes": "1073741824",
+            "requestedServiceObjectiveName": "Basic"
+          }
+        },
+        {
+          "type": "firewallrules",
+          "name": "[variables('serviceName')]",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2014-04-01-preview",
+          "dependsOn": [
+            "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
+          ],
+          "properties": {
+            "startIpAddress": "0.0.0.0",
+            "endIpAddress": "0.0.0.0"
+          }
+        },
+        {
+          "type": "virtualNetworkRules",
+          "name": "[variables('serviceName')]",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2015-05-01-preview",
+          "dependsOn": [
+            "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
+          ],
+          "properties": {
+            "virtualNetworkSubnetId": "[variables('virtualSubnetId')]",
+            "ignoreMissingVnetServiceEndpoint": true
+          }
+        }
+      ]
+    },
+
+    {
       "type": "Microsoft.Compute/virtualMachines",
       "apiVersion": "2020-06-01",
       "name": "[variables('virtualMachineName')]",
       "location": "[variables('resourceLocation')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/networkInterfaces/', variables('networkInterfaceName'))]"
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceName'))]"
       ],
       "properties": {
         "hardwareProfile": {
@@ -143,6 +238,13 @@
               "storageAccountType": "Standard_LRS"
             }
           },
+          "dataDisks": [
+            {
+              "diskSizeGB": "1024",
+              "lun": 0,
+              "createOption": "Empty"
+            }
+          ],
           "imageReference": {
             "publisher": "Canonical",
             "offer": "UbuntuServer",
@@ -162,7 +264,31 @@
           "adminUsername": "[parameters('adminUsername')]",
           "adminPassword": "[parameters('adminPassword')]"
         }
-      }
+      },
+      "resources": [
+        {
+          "type": "extensions",
+          "name": "Initialize",
+          "apiVersion": "2015-06-15",
+          "location": "[resourceGroup().location]",
+          "dependsOn": [
+            "[resourceId('Microsoft.Compute/virtualMachines', variables('virtualMachineName'))]",
+            "[resourceId('Microsoft.Sql/servers/databases', variables('sqlServerName'), variables('sqlDatabaseName'))]"
+          ],
+          "properties": {
+            "publisher": "Microsoft.Azure.Extensions",
+            "type": "CustomScript",
+            "typeHandlerVersion": "2.0",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "fileUris": [
+                "[concat(parameters('_artifactsLocation'), '/azuredeploy.sh', parameters('_artifactsLocationSasToken'))]"
+              ],
+              "commandToExecute": "[concat('find ./ -type f -name azuredeploy.sh -exec sh \"{}\" \"', base64(parameters('adminUsername')), '\" \"', base64(parameters('adminUsername')), '\" \"', base64(concat('jdbc:sqlserver://', reference(resourceId('Microsoft.Sql/servers',variables('sqlServerName'))).fullyQualifiedDomainName, ';databaseName=', variables('sqlDatabaseName'), ';encrypt=true;trustServerCertificate=false;hostNameInCertificate=', replace(reference(resourceId('Microsoft.Sql/servers', variables('sqlServerName'))).fullyQualifiedDomainName, concat(variables('sqlServerName'), '.'), '*.'), ';loginTimeout=30;')), '\" \\;')]"
+            }
+          }
+        }
+      ]
     }
   ],
   "outputs": {
