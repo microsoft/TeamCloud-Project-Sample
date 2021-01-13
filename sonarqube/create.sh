@@ -15,13 +15,11 @@ waitFor() {
         local RETRYMAX=60
         local RETRY=0
 
-        echo -n "Web ($1): ." && until [ $(curl -o /dev/null --silent --fail https://$1) ]; do
+        ((RETRY=0)) && echo -n "Web ($1): ." && until [ $(curl -o /dev/null --silent --fail https://$1) ]; do
              ((RETRY=RETRY+1)) && [ "$RETRY" >= "$RETRYMAX" ] && ( echo " timeout after $RETRY retries" && exit 1 ) || ( echo -n '.' && sleep 5 )
         done && echo ' done'
 
-        RETRY=0
-
-        echo -n "API ($1): ." && until [ "$(curl -s https://$1/api/system/status | jq --raw-output '.status')" == "UP" ]; do
+        ((RETRY=0)) && echo -n "API ($1): ." && until [ "$(curl -s https://$1/api/system/status | jq --raw-output '.status')" == "UP" ]; do
             ((RETRY=RETRY+1)) && [ "$RETRY" >= "$RETRYMAX" ] && ( echo " timeout after $RETRY retries" && exit 1 ) || ( echo -n '.' && sleep 5 )
         done && echo ' done'
     fi
