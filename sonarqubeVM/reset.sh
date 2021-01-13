@@ -12,10 +12,10 @@ error() {
 SCRIPT="$(find /docker-runner.d -maxdepth 1 -iname "$(basename "$0")")"
 
 if [ ! -z "$ComponentResourceGroup" ]; then
-	$(az vm list --subscription $ComponentSubscription -g $ComponentResourceGroup --query "[].name" -o tsv) | while read VMNAME; do
+	echo "$(az vm list --subscription $ComponentSubscription -g $ComponentResourceGroup --query "[].name" -o tsv)" | while read VMNAME; do
 
 		IDS=$(az vm extension list --subscription $ComponentSubscription -g $ComponentResourceGroup --vm-name $VMNAME --query '[?typePropertiesType == 'CustomScript'].id' -o tsv)
-		[ ! -z "$IDS" ] && az vm extension delete --ids ${IDS}
+		[ ! -z "$IDS" ] && az vm extension delete --ids ${IDS} # delete all custom script extensions so we can rerun out deployment template with failing because of conflicts
 
 	done
 fi
