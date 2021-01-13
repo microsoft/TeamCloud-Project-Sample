@@ -1,0 +1,32 @@
+# set the display name of the component
+name: SonarQube VM
+
+# Set the component type
+type: Environment
+
+# set the component description
+description: ./readme.md
+
+# Set the component isolation level
+isolation: ResourceGroup
+
+parameters:
+
+  - id: adminUsername
+    name: Admin Username
+    type: string
+    required: true
+    default: coder
+
+  - id: adminPassword
+    name: Admin Password
+    type: string
+    required: true
+
+tasks:
+
+  - id: reset
+    name: Reset
+    description: Reset the component to its original state.
+    
+provider: markusheiliger/tcrunner-arm

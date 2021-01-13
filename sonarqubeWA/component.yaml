@@ -1,5 +1,5 @@
 # set the display name of the component
-name: SonarQube LTS
+name: SonarQube WA
 
 # Set the component type
 type: Environment
