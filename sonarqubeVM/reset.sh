@@ -15,11 +15,13 @@ trace "Deleting script extensions"
 if [ ! -z "$ComponentResourceGroup" ]; then
 	echo "$(az vm list --subscription $ComponentSubscription -g $ComponentResourceGroup --query "[].name" -o tsv)" | while read VMNAME; do
 
-		az vm extension list --subscription $ComponentSubscription -g $ComponentResourceGroup --vm-name $VMNAME
+		az vm extension list --subscription $ComponentSubscription -g $ComponentResourceGroup --vm-name "$VMNAME"
+		az vm extension list --subscription $ComponentSubscription -g $ComponentResourceGroup --vm-name $VMNAME --query "[?typePropertiesType == 'CustomScript'].id"
+		
 		IDS="$(az vm extension list --subscription $ComponentSubscription -g $ComponentResourceGroup --vm-name $VMNAME --query "[?typePropertiesType == 'CustomScript'].id" -o tsv)"
 
 		az vm extension list --subscription $ComponentSubscription -g $ComponentResourceGroup --vm-name $VMNAME --query "[?typePropertiesType == 'CustomScript'].id"
-		
+
 		echo "- VM: $VMNAME ($IDS)"
 		[ ! -z "$IDS" ] && az vm extension delete --ids ${IDS} # delete all custom script extensions so we can rerun out deployment template with failing because of conflicts
 
