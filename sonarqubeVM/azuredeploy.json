@@ -268,7 +268,7 @@
       "resources": [
         {
           "type": "extensions",
-          "name": "[deployment().name]",
+          "name": "Init",
           "apiVersion": "2015-06-15",
           "location": "[resourceGroup().location]",
           "dependsOn": [
@@ -280,6 +280,7 @@
             "type": "CustomScript",
             "typeHandlerVersion": "2.0",
             "autoUpgradeMinorVersion": true,
+            "forceUpdateTag": "[deployment().name]"
             "settings": {
               "fileUris": [
                 "[concat(parameters('_artifactsLocation'), '/azuredeploy.sh', parameters('_artifactsLocationSasToken'))]"
