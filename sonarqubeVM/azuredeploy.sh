@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # elevate the script if not executed as root
-[ "$UID" != "0" ] && exec -E "$0" ${1+"$@"}
+[ "$UID" != "0" ] && exec sudo -E "$0" ${1+"$@"}
 
 DIR=$(dirname $(readlink -f $0))
 
