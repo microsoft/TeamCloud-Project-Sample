@@ -268,7 +268,7 @@
       "resources": [
         {
           "type": "extensions",
-          "name": "Initialize",
+          "name": "[deployment().name]",
           "apiVersion": "2015-06-15",
           "location": "[resourceGroup().location]",
           "dependsOn": [
