@@ -19,14 +19,14 @@ deleteCustomScriptExtensions() {
 # get the default runner script path to execute first before adding custom stuff
 SCRIPT="$(find /docker-runner.d -maxdepth 1 -iname "$(basename "$0")")"
 
-trace "Deleting script extensions"
-if [ -z "$ComponentResourceGroup" ]; then
-    echo "$(az group list --query "[].name" -o tsv)" | while read rg; do
-        deleteCustomScriptExtensions "$rg"
-    done
-else
-    deleteCustomScriptExtensions "$ComponentResourceGroup"
-fi
+# trace "Deleting script extensions"
+# if [ -z "$ComponentResourceGroup" ]; then
+#     echo "$(az group list --query "[].name" -o tsv)" | while read rg; do
+#         deleteCustomScriptExtensions "$rg"
+#     done
+# else
+#     deleteCustomScriptExtensions "$ComponentResourceGroup"
+# fi
 
 
 # isolate task script execution in sub shell  
