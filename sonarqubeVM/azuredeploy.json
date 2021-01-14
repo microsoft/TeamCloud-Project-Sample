@@ -285,7 +285,7 @@
               "fileUris": [
                 "[concat(parameters('_artifactsLocation'), '/azuredeploy.sh', parameters('_artifactsLocationSasToken'))]"
               ],
-              "commandToExecute": "[concat('find ./ -type f -name azuredeploy.sh -exec sh \"{}\" \"', base64(parameters('adminUsername')), '\" \"', base64(parameters('adminUsername')), '\" \"', base64(concat('jdbc:sqlserver://', reference(resourceId('Microsoft.Sql/servers',variables('sqlServerName'))).fullyQualifiedDomainName, ';databaseName=', variables('sqlDatabaseName'), ';encrypt=true;trustServerCertificate=false;hostNameInCertificate=', replace(reference(resourceId('Microsoft.Sql/servers', variables('sqlServerName'))).fullyQualifiedDomainName, concat(variables('sqlServerName'), '.'), '*.'), ';loginTimeout=30;')), '\" \\;')]"
+              "commandToExecute": "[concat('find ./ -type f -name azuredeploy.sh -exec sh \"{}\" \"', base64(parameters('adminUsername')), '\" \"', base64(parameters('adminPassword')), '\" \"', base64(reference(resourceId('Microsoft.Sql/servers',variables('sqlServerName'))).fullyQualifiedDomainName), '\" \"', base64(variables('sqlDatabaseName')), '\" \"', base64(concat('jdbc:sqlserver://', reference(resourceId('Microsoft.Sql/servers',variables('sqlServerName'))).fullyQualifiedDomainName, ';databaseName=', variables('sqlDatabaseName'), ';encrypt=true;trustServerCertificate=false;hostNameInCertificate=', replace(reference(resourceId('Microsoft.Sql/servers', variables('sqlServerName'))).fullyQualifiedDomainName, concat(variables('sqlServerName'), '.'), '*.'), ';loginTimeout=30;')), '\" \\;')]"
             }
           }
         }

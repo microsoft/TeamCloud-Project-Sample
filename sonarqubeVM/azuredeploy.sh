@@ -10,7 +10,9 @@ exec &> >(tee -a "$DIR/azuredeploy.log")
 
 PARAM_ADMINUSERNAME="$( echo "${1}" | base64 --decode )"
 PARAM_ADMINPASSWORD="$( echo "${2}" | base64 --decode )"
-PARAM_CONNECTIONSTRING="$( echo "${3}" | base64 --decode )"
+PARAM_DATABASESERVER="$( echo "${3}" | base64 --decode )"
+PARAM_DATABASENAME="$( echo "${4}" | base64 --decode )"
+PARAM_CONNECTIONSTRING="$( echo "${5}" | base64 --decode )"
 
 ARCHITECTURE="x64"
 ARCHITECTURE_BIT="64"
@@ -18,9 +20,14 @@ ARCHITECTURE_BIT="64"
 # OIC_AUTHORIZATION_ENDPOINT=$(curl -s "https://login.microsoftonline.com/$PARAM_OIC_TENANT_ID/v2.0/.well-known/openid-configuration" | jq --raw-output '.authorization_endpoint')
 # OIC_TOKEN_ENDPOINT=$(curl -s "https://login.microsoftonline.com/$PARAM_OIC_TENANT_ID/v2.0/.well-known/openid-configuration" | jq --raw-output '.token_endpoint')
 
-VM_NAME=$(curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/compute/name?api-version=2017-08-01&format=text")
-VM_LOCATION=$(curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/compute/location?api-version=2017-08-01&format=text")
-VM_FQN=$(echo $(curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/compute/tags?api-version=2017-08-01&format=text") | grep -Po 'ServiceUrl:(?:(?!;).)*' | grep -Po '(?<=:\/\/).*')
+VM_JSON=$( curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/compute?api-version=2020-10-01" )
+VM_NAME=$( echo "$VM_JSON" | jq --raw-output '.name' )
+VM_LOCATION=$( echo "$VM_JSON" | jq --raw-output '.location'  )
+VM_FQN=$( echo "$VM_JSON" | jq --raw-output '"\(.name).\(.location).cloudapp.azure.com"' )
+
+SONARUSERNAME="sonar"
+SONARPASSWORD=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
+SONARVERSION="7.5"
 
 trace() {
     echo -e "\n>>> $(date '+%F %T'): $@\n"
@@ -30,20 +37,45 @@ trace "Updating hosts file"
 sed -i "s/127.0.0.1 localhost/127.0.0.1 localhost $(cat /etc/hostname) $VM_FQN/g" /etc/hosts
 cat /etc/hosts
 
+trace "Registering package feeds"
+curl -s https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
+curl -s https://packages.microsoft.com/config/ubuntu/18.04/prod.list >> /etc/apt/sources.list.d/msprod.list
+
 trace "Updating & upgrading packages"
 apt-get update && apt-get upgrade -y
 snap install core && snap refresh core
 
+trace "Installing Utilities"
+ACCEPT_EULA=Y apt-get install -y jq unzip default-jre 
+
 trace "Installing Azure CLI"
 curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+
+trace "Installing MSSQL Tools"
+ACCEPT_EULA=Y apt-get install -y mssql-tools unixodbc-dev
 
 trace "Installing NGINX & CertBot"
 ACCEPT_EULA=Y apt-get install -y nginx 
 snap install --classic certbot 
 [ ! -L /usr/bin/certbot ] && ln -s /snap/bin/certbot /usr/bin/certbot
-certbot --nginx --register-unsafely-without-email --agree-tos -d $VM_FQN
+certbot --nginx --register-unsafely-without-email --agree-tos --noninteractive -d $VM_FQN
 
-trace "Initialize data disk"
+trace "Creating SonarQube User"
+[ ! $(getent group $SONARUSERNAME) ] && groupadd $SONARUSERNAME
+[ ! `id -u $SONARUSERNAME 2>/dev/null || echo -1` -ge 0 ] && useradd -c "Sonar System User" -d /opt/sonarqube -g $SONARUSERNAME -s /bin/bash $SONARUSERNAME
+sed -i s/\#RUN_AS_USER=/RUN_AS_USER=$SONARUSERNAME/g /opt/sonarqube/bin/linux-x86-$ARCHITECTURE_BIT/sonar.sh 
+
+trace "Installing SonarQube"
+[[ ! -d /opt/sonarqube || -z "$(ls -A /opt/sonarqube)" ]] && {
+	SONARARCHIVE="$(find $PWD -maxdepth 1 -iname "sonarqube-$SONARVERSION.zip")"
+	[ -z "$SONARARCHIVE" ] && {
+		SONARARCHIVE="./sonarqube-$SONARVERSION.zip" 
+		curl -s https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-$SONARVERSION.zip --output $SONARARCHIVE
+	}
+	unzip $SONARARCHIVE && mv ./sonarqube-$SONARVERSION /opt/sonarqube && chown -R sonar:sonar /opt/sonarqube
+}
+
+trace "Configuring SonarQube (data disk)"
 [ -d "/datadrive" ] && cat /etc/fstab || {
 	printf "n\np\n1\n\n\nw\n" | fdisk /dev/sdc
 	mkfs -t ext4 /dev/sdc1
@@ -54,32 +86,18 @@ UUID=$(blkid /dev/sdc1 -s UUID -o value)   /datadrive   ext4   defaults,nofail  
 END
 } 
 
-trace "Initialize data folders"
-[ -d "/datadrive/data" ] || mkdir /datadrive/data 
-[ -d "/datadrive/temp" ] || mkdir /datadrive/temp
-ls /datadrive
+trace "Configuring SonarQube (data directories)"
+mkdir -p /datadrive/data && chown sonar:sonar /datadrive/data
+mkdir -p /datadrive/temp && chown sonar:sonar /datadrive/temp
+find /datadrive -maxdepth 1 -group sonar
 
-SONARUSERNAME="sonar"
-SONARPASSWORD=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
+trace "Configuring SonarQube (database)"
+readonly SQLCMD_HOME=/opt/mssql-tools/bin
+$SQLCMD_HOME/sqlcmd -S tcp:$PARAM_DATABASESERVER,1433 -d master -U $PARAM_ADMINUSERNAME -P $PARAM_ADMINPASSWORD -Q "CREATE LOGIN $SONARUSERNAME WITH PASSWORD='$SONARPASSWORD';" >/dev/null
+$SQLCMD_HOME/sqlcmd -S tcp:$PARAM_DATABASESERVER,1433 -d $PARAM_DATABASENAME -U $PARAM_ADMINUSERNAME -P $PARAM_ADMINPASSWORD -Q "CREATE USER $SONARUSERNAME FROM LOGIN $SONARUSERNAME; exec sp_addrolemember 'db_owner', '$SONARUSERNAME';" >/dev/null
 
-# trace "Preparing SonarQube database"
-# SQLCMD_HOME=/opt/mssql-tools/bin
-# $SQLCMD_HOME/sqlcmd -S tcp:$PARAM_DATABASE_SERVER.database.windows.net,1433 -d master -U $PARAM_ADMINUSERNAME -P $PARAM_ADMINPASSWORD -Q "CREATE LOGIN $SONARUSERNAME WITH PASSWORD='$SONARPASSWORD';"
-# $SQLCMD_HOME/sqlcmd -S tcp:$PARAM_DATABASE_SERVER.database.windows.net,1433 -d $PARAM_DATABASE_NAME -U $PARAM_ADMINUSERNAME -P $PARAM_ADMINPASSWORD -Q "CREATE USER $SONARUSERNAME FROM LOGIN $SONARUSERNAME; exec sp_addrolemember 'db_owner', '$SONARUSERNAME';"
-
-# configure SonarQube run-as user
-trace "Configuring SonarQube (run-as user)"
-[ ! $(getent group $SONARUSERNAME) ] && groupadd $SONARUSERNAME
-[ ! `id -u $SONARUSERNAME 2>/dev/null || echo -1` -ge 0 ] && useradd -c "Sonar System User" -d /opt/sonarqube -g $SONARUSERNAME -s /bin/bash $SONARUSERNAME
-chown -R sonar:sonar /opt/sonarqube
-chown sonar:sonar /datadrive/data
-chown sonar:sonar /datadrive/temp
-sed -i s/\#RUN_AS_USER=/RUN_AS_USER=$SONARUSERNAME/g /opt/sonarqube/bin/linux-x86-$ARCHITECTURE_BIT/sonar.sh 
-cat /opt/sonarqube/bin/linux-x86-$ARCHITECTURE_BIT/sonar.sh 
-
-# configure SonarQube settings
 trace "Configuring SonarQube (properties)"
-tee -a /opt/sonarqube/conf/sonar.properties << END
+[ -z "$(grep 'CUSTOM CONFIGURATION' /opt/sonarqube/conf/sonar.properties)" ] && tee -a /opt/sonarqube/conf/sonar.properties << END
 
 #--------------------------------------------------------------------------------------------------
 # CUSTOM CONFIGURATION
@@ -90,6 +108,7 @@ sonar.jdbc.url=$PARAM_CONNECTIONSTRING
 
 sonar.path.data=/datadrive/data
 sonar.path.temp=/datadrive/temp
+
 END
 
 # configure SonarQube as a service
@@ -116,12 +135,10 @@ END
 # initalize SonarQube database
 trace "Intializing SonarQube database"
 /opt/sonarqube/bin/linux-x86-$ARCHITECTURE_BIT/sonar.sh console &
-
-# wait for SonarQube database to be initialized
-trace "Waiting for SonarQube database to be initialized"
-while [ "$(curl -s http://localhost:9000/api/system/status | jq '.status' | tr -d '"')" != "UP" ]; do
-    echo "- status: $(curl -s http://localhost:9000/api/system/status | jq '.status' | tr -d '"')"
-    sleep 5
+timeout=$(($(date +%s)+300)) # now plus 5 minutes
+while [ "$timeout" -ge "$(date +%s)" ]; do
+	status="$( curl -s http://localhost:9000/api/system/status | jq --raw-output '.status' )"
+	[ "$status" == "UP" ] && break || { echo "- $status"; sleep 5; }
 done
 
 # enable SonarQube service
