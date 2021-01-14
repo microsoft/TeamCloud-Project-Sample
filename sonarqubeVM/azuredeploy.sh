@@ -4,11 +4,9 @@
 [ "$UID" != "0" ] && exec -E "$0" ${1+"$@"}
 
 DIR=$(dirname $(readlink -f $0))
-LOG="$DIR/azuredeploy.log"
 
-touch $LOG     # ensure the log file exists
-exec 1>$LOG    # forward stdout to log file
-exec 2>&1      # redirect stderr to stdout
+# tee stdout and stderr into log file
+exec &> >(tee -a "$DIR/azuredeploy.log")
 
 PARAM_ADMINUSERNAME="$( echo "${1}" | base64 --decode )"
 PARAM_ADMINPASSWORD="$( echo "${2}" | base64 --decode )"
