@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DIR=$(basename $0)
+DIR=$(dirname $0)
 LOG="$DIR\azuredeploy.log"
 
 touch $LOG     # ensure the log file exists
@@ -34,6 +34,7 @@ trace "Installing NGINX"
 sudo ACCEPT_EULA=Y apt-get install -y azure-cli nginx unzip jq software-properties-common python-certbot-nginx
 sudo certbot --nginx --register-unsafely-without-email --agree-tos -d $VM_FQN
 
+[ -d "/datadrive" ] || {
 trace "Initialize data disk"
 printf "n\np\n1\n\n\nw\n" | sudo fdisk /dev/sdc
 sudo mkfs -t ext4 /dev/sdc1
@@ -42,7 +43,8 @@ sudo mount /dev/sdc1 /datadrive
 sudo tee -a /etc/fstab << END 
 UUID=$(sudo blkid /dev/sdc1 -s UUID -o value)   /datadrive   ext4   defaults,nofail   1   2
 END
+}
 
 trace "Create data disk folders"
-sudo mkdir /datadrive/data
-sudo mkdir /datadrive/temp
+[ -d "/datadrive/data" ] || sudo mkdir /datadrive/data 
+[ -d "/datadrive/temp" ] || sudo mkdir /datadrive/temp
