@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# elevate the script if not executed as root
+[ "$UID" != "0" ] && exec sudo -E "$0" ${1+"$@"}
+
 DIR=$(dirname $0)
 LOG="$DIR\azuredeploy.log"
 
@@ -15,9 +18,9 @@ trace() {
     echo -e "\n>>> $(date '+%F %T.%N'): $@\n"
 }
 
-trace "Fetching OIC metadata"
-OIC_AUTHORIZATION_ENDPOINT=$(curl -s "https://login.microsoftonline.com/$PARAM_OIC_TENANT_ID/v2.0/.well-known/openid-configuration" | jq --raw-output '.authorization_endpoint')
-OIC_TOKEN_ENDPOINT=$(curl -s "https://login.microsoftonline.com/$PARAM_OIC_TENANT_ID/v2.0/.well-known/openid-configuration" | jq --raw-output '.token_endpoint')
+# trace "Fetching OIC metadata"
+# OIC_AUTHORIZATION_ENDPOINT=$(curl -s "https://login.microsoftonline.com/$PARAM_OIC_TENANT_ID/v2.0/.well-known/openid-configuration" | jq --raw-output '.authorization_endpoint')
+# OIC_TOKEN_ENDPOINT=$(curl -s "https://login.microsoftonline.com/$PARAM_OIC_TENANT_ID/v2.0/.well-known/openid-configuration" | jq --raw-output '.token_endpoint')
 
 trace "Fetching VM metadata"
 VM_NAME=$(curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/compute/name?api-version=2017-08-01&format=text")
