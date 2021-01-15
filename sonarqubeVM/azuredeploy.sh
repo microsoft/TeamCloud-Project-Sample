@@ -58,12 +58,8 @@ trace "Installing NGINX & CertBot"
 ACCEPT_EULA=Y apt-get install -y nginx 
 snap install --classic certbot 
 [ ! -L /usr/bin/certbot ] && ln -s /snap/bin/certbot /usr/bin/certbot
-certbot --nginx --register-unsafely-without-email --agree-tos --noninteractive -d $VM_FQN
-
-trace "Creating SonarQube User"
-[ ! $(getent group $SONARUSERNAME) ] && groupadd $SONARUSERNAME
-[ ! `id -u $SONARUSERNAME 2>/dev/null || echo -1` -ge 0 ] && useradd -c "Sonar System User" -d /opt/sonarqube -g $SONARUSERNAME -s /bin/bash $SONARUSERNAME
-sed -i s/\#RUN_AS_USER=/RUN_AS_USER=$SONARUSERNAME/g /opt/sonarqube/bin/linux-x86-$ARCHITECTURE_BIT/sonar.sh 
+echo "- Creating SSL certificate for $VM_FQN"
+certbot --nginx --register-unsafely-without-email --agree-tos --noninteractive -d "$VM_FQN"
 
 trace "Installing SonarQube"
 [[ ! -d /opt/sonarqube || -z "$(ls -A /opt/sonarqube)" ]] && {
@@ -74,6 +70,17 @@ trace "Installing SonarQube"
 	}
 	unzip $SONARARCHIVE && mv ./sonarqube-$SONARVERSION /opt/sonarqube && chown -R sonar:sonar /opt/sonarqube
 }
+
+trace "Creating SonarQube User"
+[ ! $(getent group $SONARUSERNAME) ] && { 
+	echo "- Creating group: $SONARUSERNAME"
+	groupadd $SONARUSERNAME 
+}
+[ ! `id -u $SONARUSERNAME 2>/dev/null || echo -1` -ge 0 ] && { 
+	echo "- Creating user: $SONARUSERNAME" 
+	useradd -c "Sonar System User" -d /opt/sonarqube -g $SONARUSERNAME -s /bin/bash $SONARUSERNAME 
+}
+sed -i s/\#RUN_AS_USER=/RUN_AS_USER=$SONARUSERNAME/g /opt/sonarqube/bin/linux-x86-$ARCHITECTURE_BIT/sonar.sh 
 
 trace "Configuring SonarQube (data disk)"
 [ -d "/datadrive" ] && cat /etc/fstab || {
