@@ -254,11 +254,13 @@ trace "Intializing SonarQube"
 echo "- Starting SonarQube Console"
 /opt/sonarqube/bin/linux-x86-$ARCHITECTURE_BIT/sonar.sh console &
 
+# initialization need to be secured by a timeout
 timeout=$(($(date +%s)+300)) # now plus 5 minutes
+
 echo "  ."; while [ "$timeout" -ge "$(date +%s)" ]; do
 	status="$( curl -s http://localhost:9000/api/system/status | jq --raw-output '.status' )"
 	[ "$status" == "UP" ] && { echo ". done"; break; } || { echo -n "."; sleep 5; }
-done;
+done; [ "$status" != "UP" ] && { echo ". failed"; exit 1; }
 
 echo "- Enabling SonarQube Service"
 systemctl enable sonarqube
