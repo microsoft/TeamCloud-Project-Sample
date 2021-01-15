@@ -80,10 +80,10 @@ trace "Installing SonarQube"
 		SONARARCHIVE="./sonarqube-$SONARVERSION.zip" 
 		curl -s https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-$SONARVERSION.zip --output $SONARARCHIVE
 	}
-	unzip $SONARARCHIVE && mv ./sonarqube-$SONARVERSION /opt/sonarqube && chown -R sonar:sonar /opt/sonarqube
+	unzip $SONARARCHIVE && mv ./sonarqube-$SONARVERSION /opt/sonarqube
 }
 
-trace "Creating SonarQube User"
+trace "Configuring SonarQube (user)"
 [ ! $(getent group $SONARUSERNAME) ] && { 
 	echo "- Creating group: $SONARUSERNAME"
 	groupadd $SONARUSERNAME 
@@ -92,6 +92,9 @@ trace "Creating SonarQube User"
 	echo "- Creating user: $SONARUSERNAME" 
 	useradd -c "Sonar System User" -d /opt/sonarqube -g $SONARUSERNAME -s /bin/bash $SONARUSERNAME 
 }
+echo "- Granting $SONARUSERNAME SonarQube ownership"
+chown -R sonar:sonar /opt/sonarqube
+echo "- Setting $SONARUSERNAME as RunAsUser"
 sed -i s/\#RUN_AS_USER=/RUN_AS_USER=$SONARUSERNAME/g /opt/sonarqube/bin/linux-x86-$ARCHITECTURE_BIT/sonar.sh 
 
 trace "Configuring SonarQube (data disk)"
