@@ -163,7 +163,7 @@ trace "Configuring SonarQube (identity)"
 }
 
 echo "- Granting $SQ_DATABASE_USERNAME SonarQube ownership"
-chown -R sonar:sonar /opt/sonarqube
+chown -R $SQ_DATABASE_USERNAME:$SQ_DATABASE_USERNAME /opt/sonarqube
 
 echo "- Setting $SQ_DATABASE_USERNAME as RunAsUser"
 sed -i s/\#RUN_AS_USER=/RUN_AS_USER=$SQ_DATABASE_USERNAME/g /opt/sonarqube/bin/linux-x86-$ARCHITECTURE_BIT/sonar.sh 
@@ -184,9 +184,9 @@ trace "Configuring SonarQube (storage)"
 UUID=$(blkid /dev/sdc1 -s UUID -o value)   /datadrive   ext4   defaults,nofail   1   2
 END
 } 
-mkdir -p /datadrive/data && chown sonar:sonar /datadrive/data
-mkdir -p /datadrive/temp && chown sonar:sonar /datadrive/temp
-find /datadrive -maxdepth 1 -group sonar
+mkdir -p /datadrive/data && chown $SQ_DATABASE_USERNAME:$SQ_DATABASE_USERNAME /datadrive/data
+mkdir -p /datadrive/temp && chown $SQ_DATABASE_USERNAME:$SQ_DATABASE_USERNAME /datadrive/temp
+find /datadrive -maxdepth 1 -group $SQ_DATABASE_USERNAME
 
 # =========================================================================================================
 # Configuring SonarQube (database)
@@ -224,7 +224,7 @@ END
 # =========================================================================================================
 
 trace "Configuring SonarQube (service)"
-tee /etc/systemd/system/sonar.service << END
+tee /etc/systemd/system/sonarqube.service << END
 [Unit]
 Description=SonarQube service
 After=syslog.target network.target
@@ -235,8 +235,8 @@ Type=forking
 ExecStart=/opt/sonarqube/bin/linux-x86-$ARCHITECTURE_BIT/sonar.sh start
 ExecStop=/opt/sonarqube/bin/linux-x86-$ARCHITECTURE_BIT/sonar.sh stop
 
-User=sonar
-Group=sonar
+User=$SQ_DATABASE_USERNAME
+Group=$SQ_DATABASE_USERNAME
 Restart=always
 
 [Install]
@@ -261,7 +261,7 @@ echo "  ."; while [ "$timeout" -ge "$(date +%s)" ]; do
 done;
 
 echo "- Enabling SonarQube Service"
-systemctl enable sonar
+systemctl enable sonarqube
 
 # =========================================================================================================
 # Configuring SonarQube (user)
