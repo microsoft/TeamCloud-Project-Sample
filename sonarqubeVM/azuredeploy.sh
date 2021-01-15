@@ -45,10 +45,6 @@ getVMFQN() {
 	curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/compute?api-version=2020-10-01" | jq --raw-output '"\(.name).\(.location).cloudapp.azure.com"'
 }
 
-trace "Updating hosts file"
-sed -i "s/127.0.0.1 localhost/127.0.0.1 localhost $(cat /etc/hostname) $( getVMFQN )/g" /etc/hosts
-cat /etc/hosts
-
 trace "Registering package feeds"
 curl -s https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
 curl -s https://packages.microsoft.com/config/ubuntu/18.04/prod.list >> /etc/apt/sources.list.d/msprod.list
@@ -58,7 +54,11 @@ apt-get update && apt-get upgrade -y
 snap install core && snap refresh core
 
 trace "Installing Utilities"
-ACCEPT_EULA=Y apt-get install -y jq unzip default-jre 
+ACCEPT_EULA=Y apt-get install -y jq unzip  
+
+trace "Updating hosts file"
+sed -i "s/127.0.0.1 localhost/127.0.0.1 localhost $(cat /etc/hostname) $( getVMFQN )/g" /etc/hosts
+cat /etc/hosts
 
 trace "Installing Azure CLI"
 curl -sL https://aka.ms/InstallAzureCLIDeb | bash
@@ -67,7 +67,7 @@ trace "Installing MSSQL Tools"
 ACCEPT_EULA=Y apt-get install -y mssql-tools unixodbc-dev
 
 trace "Installing NGINX & CertBot"
-ACCEPT_EULA=Y apt-get install -y nginx 
+ACCEPT_EULA=Y apt-get install -y default-jre nginx 
 snap install --classic certbot 
 [ ! -L /usr/bin/certbot ] && ln -s /snap/bin/certbot /usr/bin/certbot
 echo "- Creating SSL certificate for $( getVMFQN )"
