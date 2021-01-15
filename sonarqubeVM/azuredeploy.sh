@@ -264,8 +264,10 @@ echo "- Enabling SonarQube Service"
 systemctl enable sonarqube
 
 # =========================================================================================================
-# Configuring SonarQube (user)
+# Configuring SonarQube (authentication)
 # =========================================================================================================
+
+trace "Configuring SonarQube (authentication)"
 
 # OIC_AUTHORIZATION_ENDPOINT=$(curl -s "https://login.microsoftonline.com/$PARAM_OIC_TENANT_ID/v2.0/.well-known/openid-configuration" | jq --raw-output '.authorization_endpoint')
 # OIC_TOKEN_ENDPOINT=$(curl -s "https://login.microsoftonline.com/$PARAM_OIC_TENANT_ID/v2.0/.well-known/openid-configuration" | jq --raw-output '.token_endpoint')
@@ -274,12 +276,7 @@ readonly AADTENANTID=""
 readonly AADCLIENTID=""
 readonly AADCLIENTSECRET=""
 
-echo "- Initializing system user: scanner"
-curl -s -o /dev/null -u $( getSQToken ): --data-urlencode "name=$SQ_SCANNER_USERNAME" -X POST "http://localhost:9000/api/users/create?login=$SQ_SCANNER_USERNAME&password=$SQ_SCANNER_PASSWORD"
-curl -s -o /dev/null -u $( getSQToken ): -d "" -X POST "http://localhost:9000/api/permissions/add_user?login=$SQ_SCANNER_USERNAME&permission=scan"
-curl -s -o /dev/null -u $( getSQToken ): -d "" -X POST "http://localhost:9000/api/permissions/add_user?login=$SQ_SCANNER_USERNAME&permission=provisioning"
-
-echo "- Configure authentication"
+echo "- Enforce authentication"
 curl -s -o /dev/null -u $( getSQToken ): -d "" -X POST "http://localhost:9000/api/settings/set?key=sonar.forceAuthentication&value=true"
 
 echo "- Installing authentication plugin"
@@ -294,3 +291,18 @@ curl -s -o /dev/null -u $( getSQToken ): --data-urlencode "value=Same as Azure A
 curl -s -o /dev/null -u $( getSQToken ): --data-urlencode "value=http://localhost:9000" -X POST "http://localhost:9000/api/settings/set?key=sonar.core.serverBaseURL"
 curl -s -o /dev/null -u $( getSQToken ): -d "" -X POST "http://localhost:9000/api/settings/set?key=sonar.authenticator.downcase&value=true"
 curl -s -o /dev/null -u $( getSQToken ): -d "" -X POST "http://localhost:9000/api/settings/set?key=sonar.auth.aad.allowUsersToSignUp&value=false"
+
+echo "- Restarting SonarQube"
+/opt/sonarqube/bin/linux-x86-$ARCHITECTURE_BIT/sonar.sh restart
+
+# =========================================================================================================
+# Configuring SonarQube (users)
+# =========================================================================================================
+
+trace "Configuring SonarQube (users)"
+
+echo "- Initializing system user: scanner"
+curl -s -o /dev/null -u $( getSQToken ): --data-urlencode "name=$SQ_SCANNER_USERNAME" -X POST "http://localhost:9000/api/users/create?login=$SQ_SCANNER_USERNAME&password=$SQ_SCANNER_PASSWORD"
+curl -s -o /dev/null -u $( getSQToken ): -d "" -X POST "http://localhost:9000/api/permissions/add_user?login=$SQ_SCANNER_USERNAME&permission=scan"
+curl -s -o /dev/null -u $( getSQToken ): -d "" -X POST "http://localhost:9000/api/permissions/add_user?login=$SQ_SCANNER_USERNAME&permission=provisioning"
+
