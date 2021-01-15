@@ -8,26 +8,26 @@ DIR=$(dirname $(readlink -f $0))
 # tee stdout and stderr into log file
 exec &> >(tee -a "$DIR/azuredeploy.log")
 
-PARAM_ADMINUSERNAME="$( echo "${1}" | base64 --decode )"
-PARAM_ADMINPASSWORD="$( echo "${2}" | base64 --decode )"
-PARAM_DATABASESERVER="$( echo "${3}" | base64 --decode )"
-PARAM_DATABASENAME="$( echo "${4}" | base64 --decode )"
-PARAM_CONNECTIONSTRING="$( echo "${5}" | base64 --decode )"
+readonly PARAM_ADMINUSERNAME="$( echo "${1}" | base64 --decode )"
+readonly PARAM_ADMINPASSWORD="$( echo "${2}" | base64 --decode )"
+readonly PARAM_DATABASESERVER="$( echo "${3}" | base64 --decode )"
+readonly PARAM_DATABASENAME="$( echo "${4}" | base64 --decode )"
+readonly PARAM_CONNECTIONSTRING="$( echo "${5}" | base64 --decode )"
 
-ARCHITECTURE="x64"
-ARCHITECTURE_BIT="64"
+readonly ARCHITECTURE="x64"
+readonly ARCHITECTURE_BIT="64"
 
 # OIC_AUTHORIZATION_ENDPOINT=$(curl -s "https://login.microsoftonline.com/$PARAM_OIC_TENANT_ID/v2.0/.well-known/openid-configuration" | jq --raw-output '.authorization_endpoint')
 # OIC_TOKEN_ENDPOINT=$(curl -s "https://login.microsoftonline.com/$PARAM_OIC_TENANT_ID/v2.0/.well-known/openid-configuration" | jq --raw-output '.token_endpoint')
 
-VM_JSON=$( curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/compute?api-version=2020-10-01" )
-VM_NAME=$( echo "$VM_JSON" | jq --raw-output '.name' )
-VM_LOCATION=$( echo "$VM_JSON" | jq --raw-output '.location'  )
-VM_FQN=$( echo "$VM_JSON" | jq --raw-output '"\(.name).\(.location).cloudapp.azure.com"' )
+readonly VM_JSON=$( curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/compute?api-version=2020-10-01" )
+readonly VM_NAME=$( echo "$VM_JSON" | jq --raw-output '.name' )
+readonly VM_LOCATION=$( echo "$VM_JSON" | jq --raw-output '.location'  )
+readonly VM_FQN=$( echo "$VM_JSON" | jq --raw-output '"\(.name).\(.location).cloudapp.azure.com"' )
 
-SONARUSERNAME="sonar"
-SONARPASSWORD=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
-SONARVERSION="7.5"
+readonly SONARUSERNAME="sonar"
+readonly SONARPASSWORD=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
+readonly SONARVERSION="7.9.5"
 
 trace() {
     echo -e "\n>>> $(date '+%F %T'): $@\n"
