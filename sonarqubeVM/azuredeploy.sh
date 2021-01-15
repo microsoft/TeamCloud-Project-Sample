@@ -20,21 +20,33 @@ readonly ARCHITECTURE_BIT="64"
 # OIC_AUTHORIZATION_ENDPOINT=$(curl -s "https://login.microsoftonline.com/$PARAM_OIC_TENANT_ID/v2.0/.well-known/openid-configuration" | jq --raw-output '.authorization_endpoint')
 # OIC_TOKEN_ENDPOINT=$(curl -s "https://login.microsoftonline.com/$PARAM_OIC_TENANT_ID/v2.0/.well-known/openid-configuration" | jq --raw-output '.token_endpoint')
 
-readonly VM_JSON=$( curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/compute?api-version=2020-10-01" )
-readonly VM_NAME=$( echo "$VM_JSON" | jq --raw-output '.name' )
-readonly VM_LOCATION=$( echo "$VM_JSON" | jq --raw-output '.location'  )
-readonly VM_FQN=$( echo "$VM_JSON" | jq --raw-output '"\(.name).\(.location).cloudapp.azure.com"' )
-
 readonly SONARUSERNAME="sonar"
 readonly SONARPASSWORD=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
 readonly SONARVERSION="7.9.5"
+
 
 trace() {
     echo -e "\n>>> $(date '+%F %T'): $@\n"
 }
 
+error() {
+    echo "Error: $@" 1>&2
+}
+
+getVMName() {
+	curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/compute?api-version=2020-10-01" | jq --raw-output '.name'
+}
+
+getVMLocation() {
+	curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/compute?api-version=2020-10-01" | jq --raw-output '.location'
+}
+
+getVMFQN() {
+	curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/compute?api-version=2020-10-01" | jq --raw-output '"\(.name).\(.location).cloudapp.azure.com"'
+}
+
 trace "Updating hosts file"
-sed -i "s/127.0.0.1 localhost/127.0.0.1 localhost $(cat /etc/hostname) $VM_FQN/g" /etc/hosts
+sed -i "s/127.0.0.1 localhost/127.0.0.1 localhost $(cat /etc/hostname) $( getVMFQN )/g" /etc/hosts
 cat /etc/hosts
 
 trace "Registering package feeds"
@@ -58,8 +70,8 @@ trace "Installing NGINX & CertBot"
 ACCEPT_EULA=Y apt-get install -y nginx 
 snap install --classic certbot 
 [ ! -L /usr/bin/certbot ] && ln -s /snap/bin/certbot /usr/bin/certbot
-echo "- Creating SSL certificate for $VM_FQN"
-certbot --nginx --register-unsafely-without-email --agree-tos --noninteractive -d "$VM_FQN"
+echo "- Creating SSL certificate for $( getVMFQN )"
+certbot --nginx --register-unsafely-without-email --agree-tos --noninteractive -d "$( getVMFQN )"
 
 trace "Installing SonarQube"
 [[ ! -d /opt/sonarqube || -z "$(ls -A /opt/sonarqube)" ]] && {
