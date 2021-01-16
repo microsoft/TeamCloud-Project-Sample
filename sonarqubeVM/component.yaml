@@ -12,14 +12,8 @@ isolation: ResourceGroup
 
 parameters:
 
-  - id: adminUsername
-    name: Admin Username
-    type: string
-    required: true
-    default: coder
-
-  - id: adminPassword
-    name: Admin Password
+  - id: sonarqubePassword
+    name: SonarQube Password
     type: string
     required: true
 

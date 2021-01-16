@@ -2,20 +2,22 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "adminUsername": {
-      "type": "string",
-      "minLength": 1,
-      "metadata": {
-        "description": "Azure SQL Server Administrator Username"
-      }
-    },
-    "adminPassword": {
+    "sonarqubePassword": {
       "type": "securestring",
       "minLength": 12,
-      "maxLength": 128,
-      "metadata": {
-        "description": "Azure SQL Server Administrator Password"
-      }
+      "maxLength": 128
+    },
+    "tenantId": {
+      "type": "string",
+      "defaultValue": "[subscription().tenantId]"
+    },
+    "clientId": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "clientSecret": {
+      "type": "securestring",
+      "defaultValue": ""
     },
     "_artifactsLocation": {
       "type": "string",
@@ -170,8 +172,8 @@
         "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
       ],
       "properties": {
-        "administratorLogin": "[parameters('adminUsername')]",
-        "administratorLoginPassword": "[parameters('adminPassword')]",
+        "administratorLogin": "sonarqube",
+        "administratorLoginPassword": "[parameters('sonarqubePassword')]",
         "version": "12.0"
       },
       "resources": [
@@ -218,7 +220,6 @@
         }
       ]
     },
-
     {
       "type": "Microsoft.Compute/virtualMachines",
       "apiVersion": "2020-06-01",
@@ -261,8 +262,8 @@
         },
         "osProfile": {
           "computerName": "[variables('virtualMachineName')]",
-          "adminUsername": "[parameters('adminUsername')]",
-          "adminPassword": "[parameters('adminPassword')]"
+          "adminUsername": "sonarqube",
+          "adminPassword": "[parameters('sonarqubePassword')]"
         }
       },
       "resources": [
@@ -285,7 +286,7 @@
               "fileUris": [
                 "[concat(parameters('_artifactsLocation'), '/azuredeploy.sh', parameters('_artifactsLocationSasToken'))]"
               ],
-              "commandToExecute": "[concat('find ./ -type f -name azuredeploy.sh -exec sh \"{}\" \"', base64(parameters('adminUsername')), '\" \"', base64(parameters('adminPassword')), '\" \"', base64(reference(resourceId('Microsoft.Sql/servers',variables('sqlServerName'))).fullyQualifiedDomainName), '\" \"', base64(variables('sqlDatabaseName')), '\" \\;')]"
+              "commandToExecute": "[concat('find ./ -type f -name azuredeploy.sh -exec sh \"{}\" \"', base64(parameters('sonarqubePassword')), '\" \"', base64(reference(resourceId('Microsoft.Sql/servers',variables('sqlServerName'))).fullyQualifiedDomainName), '\" \"', base64(variables('sqlDatabaseName')), '\" \"', base64(parameters('tenantId')), '\" \"', base64(parameters('clientId')), '\" \"', base64(parameters('clientSecret')), '\" \\;')]"
             }
           }
         }

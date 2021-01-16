@@ -8,10 +8,12 @@ DIR=$(dirname $(readlink -f $0))
 # tee stdout and stderr into log file
 exec &> >(tee -a "$DIR/azuredeploy.log")
 
-readonly PARAM_ADMINUSERNAME="$( echo "${1}" | base64 --decode )"
-readonly PARAM_ADMINPASSWORD="$( echo "${2}" | base64 --decode )"
-readonly PARAM_DATABASESERVER="$( echo "${3}" | base64 --decode )"
-readonly PARAM_DATABASENAME="$( echo "${4}" | base64 --decode )"
+readonly PARAM_DATABASEPASSWORD="$( echo "${1}" | base64 --decode )"
+readonly PARAM_DATABASESERVER="$( echo "${2}" | base64 --decode )"
+readonly PARAM_DATABASENAME="$( echo "${3}" | base64 --decode )"
+readonly PARAM_AADTENANTID="$( echo "${4}" | base64 --decode )"
+readonly PARAM_AADCLIENTID="$( echo "${5}" | base64 --decode )"
+readonly PARAM_AADCLIENTSECRET="$( echo "${6}" | base64 --decode )"
 
 readonly ARCHITECTURE="x64"
 readonly ARCHITECTURE_BIT="64"
@@ -23,7 +25,8 @@ readonly SQ_SCANNER_USERNAME="scanner"
 readonly SQ_SCANNER_PASSWORD=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
 
 trace() {
-    echo -e "\n>>> $(date '+%F %T'): $@\n"
+    echo -e "\n>>> $(date '+%F %T'): $@"
+	echo -e "=========================================================================================================\n"
 }
 
 error() {
@@ -46,9 +49,9 @@ getSQToken() {
 	local token=$( cat /tmp/sonarqube_tkn_$$ 2>/dev/null )
 	[ -z "$token" ] && {
 		token=$(curl -s -u admin:admin -X POST "http://localhost:9000/api/user_tokens/generate?name=$(uuidgen)" | jq --raw-output '.token')
-		[ ! -z "$token" ] && curl -s -u $token: --data-urlencode "password=$PARAM_ADMINPASSWORD" -X POST "http://localhost:9000/api/users/change_password?login=admin&previousPassword=admin"
+		[ ! -z "$token" ] && curl -s -u $token: --data-urlencode "password=$PARAM_DATABASEPASSWORD" -X POST "http://localhost:9000/api/users/change_password?login=admin&previousPassword=admin"
 	}
-	curl -s -u admin:$PARAM_ADMINPASSWORD -X POST "http://localhost:9000/api/user_tokens/generate?name=$(uuidgen)" | jq --raw-output '.token' | tee /tmp/sonarqube_tkn_$$
+	curl -s -u admin:$PARAM_DATABASEPASSWORD -X POST "http://localhost:9000/api/user_tokens/generate?name=$(uuidgen)" | jq --raw-output '.token' | tee /tmp/sonarqube_tkn_$$
 }
 
 # =========================================================================================================
@@ -65,6 +68,7 @@ sysctl --system
 # - Register some custom package feeds
 # - Update & upgrade current packages
 # - Install utilities, NGINX, and SonarQube
+# - Connecting Azure to enable resource interaction
 # =========================================================================================================
 
 trace "Registering package feeds"
@@ -175,6 +179,7 @@ sed -i s/\#RUN_AS_USER=/RUN_AS_USER=$SQ_DATABASE_USERNAME/g /opt/sonarqube/bin/l
 # =========================================================================================================
 
 trace "Configuring SonarQube (storage)"
+
 [ -d "/datadrive" ] && cat /etc/fstab || {
 	printf "n\np\n1\n\n\nw\n" | fdisk /dev/sdc
 	mkfs -t ext4 /dev/sdc1
@@ -184,8 +189,10 @@ trace "Configuring SonarQube (storage)"
 UUID=$(blkid /dev/sdc1 -s UUID -o value)   /datadrive   ext4   defaults,nofail   1   2
 END
 } 
+
 mkdir -p /datadrive/data && chown $SQ_DATABASE_USERNAME:$SQ_DATABASE_USERNAME /datadrive/data
 mkdir -p /datadrive/temp && chown $SQ_DATABASE_USERNAME:$SQ_DATABASE_USERNAME /datadrive/temp
+
 find /datadrive -maxdepth 1 -group $SQ_DATABASE_USERNAME
 
 # =========================================================================================================
@@ -195,8 +202,9 @@ find /datadrive -maxdepth 1 -group $SQ_DATABASE_USERNAME
 
 trace "Configuring SonarQube (database)"
 readonly SQLCMD_HOME=/opt/mssql-tools/bin
-$SQLCMD_HOME/sqlcmd -S tcp:$PARAM_DATABASESERVER,1433 -d master -U $PARAM_ADMINUSERNAME -P $PARAM_ADMINPASSWORD -Q "CREATE LOGIN $SQ_DATABASE_USERNAME WITH PASSWORD='$SQ_DATABASE_PASSWORD';" >/dev/null
-$SQLCMD_HOME/sqlcmd -S tcp:$PARAM_DATABASESERVER,1433 -d $PARAM_DATABASENAME -U $PARAM_ADMINUSERNAME -P $PARAM_ADMINPASSWORD -Q "CREATE USER $SQ_DATABASE_USERNAME FROM LOGIN $SQ_DATABASE_USERNAME; exec sp_addrolemember 'db_owner', '$SQ_DATABASE_USERNAME';" >/dev/null
+
+$SQLCMD_HOME/sqlcmd -S tcp:$PARAM_DATABASESERVER,1433 -d master -U sonarqube -P $PARAM_DATABASEPASSWORD -Q "CREATE LOGIN $SQ_DATABASE_USERNAME WITH PASSWORD='$SQ_DATABASE_PASSWORD';" >/dev/null
+$SQLCMD_HOME/sqlcmd -S tcp:$PARAM_DATABASESERVER,1433 -d $PARAM_DATABASENAME -U sonarqube -P $PARAM_DATABASEPASSWORD -Q "CREATE USER $SQ_DATABASE_USERNAME FROM LOGIN $SQ_DATABASE_USERNAME; exec sp_addrolemember 'db_owner', '$SQ_DATABASE_USERNAME';" >/dev/null
 
 # =========================================================================================================
 # Configuring SonarQube (properties)
@@ -243,6 +251,9 @@ Restart=always
 WantedBy=multi-user.target
 END
 
+echo "- Enabling SonarQube Service"
+systemctl enable sonarqube
+
 # =========================================================================================================
 # Intializing SonarQube
 # - Force database initialization by starting SonarQube in console mode
@@ -252,18 +263,16 @@ END
 trace "Intializing SonarQube"
 
 echo "- Starting SonarQube Console" # use a subshell to hide output
-( /opt/sonarqube/bin/linux-x86-$ARCHITECTURE_BIT/sonar.sh console & )
+( /opt/sonarqube/bin/linux-x86-$ARCHITECTURE_BIT/sonar.sh console & ) > /dev/null
 
 # initialization need to be secured by a timeout
 timeout=$(($(date +%s)+300)) # now plus 5 minutes
 
-echo "  ."; while [ "$timeout" -ge "$(date +%s)" ]; do
+echo -n "  ."; while [ "$timeout" -ge "$(date +%s)" ]; do
 	status="$( curl -s http://localhost:9000/api/system/status | jq --raw-output '.status' )"
 	[ "$status" == "UP" ] && { echo ". done"; break; } || { echo -n "."; sleep 5; }
 done; [ "$status" != "UP" ] && { echo ". failed"; exit 1; }
 
-echo "- Enabling SonarQube Service"
-systemctl enable sonarqube
 
 # =========================================================================================================
 # Configuring SonarQube (authentication)
@@ -274,28 +283,27 @@ trace "Configuring SonarQube (authentication)"
 # OIC_AUTHORIZATION_ENDPOINT=$(curl -s "https://login.microsoftonline.com/$PARAM_OIC_TENANT_ID/v2.0/.well-known/openid-configuration" | jq --raw-output '.authorization_endpoint')
 # OIC_TOKEN_ENDPOINT=$(curl -s "https://login.microsoftonline.com/$PARAM_OIC_TENANT_ID/v2.0/.well-known/openid-configuration" | jq --raw-output '.token_endpoint')
 
-readonly AADTENANTID=""
-readonly AADCLIENTID=""
-readonly AADCLIENTSECRET=""
-
 echo "- Enforce authentication"
 curl -s -o /dev/null -u $( getSQToken ): -d "" -X POST "http://localhost:9000/api/settings/set?key=sonar.forceAuthentication&value=true"
 
-echo "- Installing authentication plugin"
-curl -s -o /dev/null -u $( getSQToken ): -d "" -X POST "http://localhost:9000/api/plugins/install?key=authaad"
+[[ ! =z "$PARAM_AADTENANTID" && ! =z "$PARAM_AADCLIENTID" && ! =z "$PARAM_AADCLIENTSECRET" ]] && {
 
-echo "- Configuring authentication plugin"
-curl -s -o /dev/null -u $( getSQToken ): -d "" -X POST "http://localhost:9000/api/settings/set?key=sonar.auth.aad.enabled&value=true"
-curl -s -o /dev/null -u $( getSQToken ): -d "" -X POST "http://localhost:9000/api/settings/set?key=sonar.auth.aad.clientId.secured&value=$AADCLIENTID"
-curl -s -o /dev/null -u $( getSQToken ): --data-urlencode "value=$AADCLIENTSECRET" -X POST "http://localhost:9000/api/settings/set?key=sonar.auth.aad.clientSecret.secured"
-curl -s -o /dev/null -u $( getSQToken ): -d "" -X POST "http://localhost:9000/api/settings/set?key=sonar.auth.aad.tenantId&value=$AADTENANTID"
-curl -s -o /dev/null -u $( getSQToken ): --data-urlencode "value=Same as Azure AD login" -X POST "http://localhost:9000/api/settings/set?key=sonar.auth.aad.loginStrategy"
-curl -s -o /dev/null -u $( getSQToken ): --data-urlencode "value=http://localhost:9000" -X POST "http://localhost:9000/api/settings/set?key=sonar.core.serverBaseURL"
-curl -s -o /dev/null -u $( getSQToken ): -d "" -X POST "http://localhost:9000/api/settings/set?key=sonar.authenticator.downcase&value=true"
-curl -s -o /dev/null -u $( getSQToken ): -d "" -X POST "http://localhost:9000/api/settings/set?key=sonar.auth.aad.allowUsersToSignUp&value=false"
+	echo "- Installing authentication plugin"
+	curl -s -o /dev/null -u $( getSQToken ): -d "" -X POST "http://localhost:9000/api/plugins/install?key=authaad"
 
-echo "- Restarting SonarQube"
-/opt/sonarqube/bin/linux-x86-$ARCHITECTURE_BIT/sonar.sh restart
+	echo "- Configuring authentication plugin"
+	curl -s -o /dev/null -u $( getSQToken ): -d "" -X POST "http://localhost:9000/api/settings/set?key=sonar.auth.aad.enabled&value=true"
+	curl -s -o /dev/null -u $( getSQToken ): -d "" -X POST "http://localhost:9000/api/settings/set?key=sonar.auth.aad.clientId.secured&value=$AADCLIENTID"
+	curl -s -o /dev/null -u $( getSQToken ): --data-urlencode "value=$AADCLIENTSECRET" -X POST "http://localhost:9000/api/settings/set?key=sonar.auth.aad.clientSecret.secured"
+	curl -s -o /dev/null -u $( getSQToken ): -d "" -X POST "http://localhost:9000/api/settings/set?key=sonar.auth.aad.tenantId&value=$AADTENANTID"
+	curl -s -o /dev/null -u $( getSQToken ): --data-urlencode "value=Same as Azure AD login" -X POST "http://localhost:9000/api/settings/set?key=sonar.auth.aad.loginStrategy"
+	curl -s -o /dev/null -u $( getSQToken ): --data-urlencode "value=http://localhost:9000" -X POST "http://localhost:9000/api/settings/set?key=sonar.core.serverBaseURL"
+	curl -s -o /dev/null -u $( getSQToken ): -d "" -X POST "http://localhost:9000/api/settings/set?key=sonar.authenticator.downcase&value=true"
+	curl -s -o /dev/null -u $( getSQToken ): -d "" -X POST "http://localhost:9000/api/settings/set?key=sonar.auth.aad.allowUsersToSignUp&value=false"
+
+	echo "- Restarting SonarQube"
+	/opt/sonarqube/bin/linux-x86-$ARCHITECTURE_BIT/sonar.sh restart
+}
 
 # =========================================================================================================
 # Configuring SonarQube (users)
