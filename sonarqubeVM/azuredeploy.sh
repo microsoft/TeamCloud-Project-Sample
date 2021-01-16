@@ -43,12 +43,12 @@ getVMFQN() {
 }
 
 getSQToken() {
-	local token=$( cat /mnt/storage/sonarqube.tkn 2>/dev/null )
+	local token=$( cat /tmp/sonarqube_tkn_$$ 2>/dev/null )
 	[ -z "$token" ] && {
 		token=$(curl -s -u admin:admin -X POST "http://localhost:9000/api/user_tokens/generate?name=$(uuidgen)" | jq --raw-output '.token')
 		[ ! -z "$token" ] && curl -s -u $token: --data-urlencode "password=$PARAM_ADMINPASSWORD" -X POST "http://localhost:9000/api/users/change_password?login=admin&previousPassword=admin"
 	}
-	curl -s -u admin:$PARAM_ADMINPASSWORD -X POST "http://localhost:9000/api/user_tokens/generate?name=$(uuidgen)" | jq --raw-output '.token' | tee /mnt/storage/sonarqube.tkn
+	curl -s -u admin:$PARAM_ADMINPASSWORD -X POST "http://localhost:9000/api/user_tokens/generate?name=$(uuidgen)" | jq --raw-output '.token' | tee /tmp/sonarqube_tkn_$$
 }
 
 # =========================================================================================================
@@ -251,8 +251,8 @@ END
 
 trace "Intializing SonarQube"
 
-echo "- Starting SonarQube Console"
-/opt/sonarqube/bin/linux-x86-$ARCHITECTURE_BIT/sonar.sh console &
+echo "- Starting SonarQube Console" # use a subshell to hide output
+( /opt/sonarqube/bin/linux-x86-$ARCHITECTURE_BIT/sonar.sh console & )
 
 # initialization need to be secured by a timeout
 timeout=$(($(date +%s)+300)) # now plus 5 minutes
