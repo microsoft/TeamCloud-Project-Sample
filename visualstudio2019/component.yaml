@@ -41,4 +41,4 @@ tasks:
     name: Stop
     description: Start and deallocate all VM resources managed by the component
     
-provider: markusheiliger/tcrunner-arm
+provider: teamcloud/tcrunner-arm

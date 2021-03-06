@@ -54,4 +54,4 @@ pools:
   - Development
   - Staging
 
-provider: markusheiliger/tcrunner-arm
+provider: teamcloud/tcrunner-arm

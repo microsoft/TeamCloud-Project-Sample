@@ -17,4 +17,4 @@ parameters:
     type: string
     required: false
 
-provider: markusheiliger/tcrunner-act
+provider: teamcloud/tcrunner-act

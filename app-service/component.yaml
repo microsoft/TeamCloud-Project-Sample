@@ -27,4 +27,4 @@ pools:
   - Development
   - Staging
 
-provider: markusheiliger/tcrunner-terraform
+provider: teamcloud/tcrunner-terraform
