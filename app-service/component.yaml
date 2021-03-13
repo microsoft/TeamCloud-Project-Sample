@@ -19,12 +19,9 @@ parameters:
       - dotnet
       - java
 
+permissions:
 
-# Make the following subscription pools available for this component. This section – if defined –
-# overrides the set of subscription pools defined in project manifest file.
-
-pools:
-  - Development
-  - Staging
+  - role: owner
+    permission: Contributor
 
 provider: teamcloud/tcrunner-terraform
