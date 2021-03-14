@@ -9,15 +9,7 @@ isolation: ResourceGroup
 
 parameters:
 
-  - id: runtime
-    name: Runtime
-    type: string
-    required: true
-    default: dotnet
-    allowed:
-      - node
-      - dotnet
-      - java
+tasks:
 
 permissions:
 
