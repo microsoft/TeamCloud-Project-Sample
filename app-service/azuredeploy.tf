@@ -16,7 +16,7 @@ variable "ComponentResourceGroupName" {
 }
  
 data "azurerm_resource_group" "test" {
-  name     = var.EnvironmentResourceGroupName
+  name     = var.ComponentResourceGroupName
 }
 
 resource "azurerm_app_service_plan" "test" {
