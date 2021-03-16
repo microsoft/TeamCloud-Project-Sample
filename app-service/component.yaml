@@ -21,6 +21,10 @@ parameters:
       
 tasks:
 
+  - id: reset
+    name: Reset
+    description: Reset the component to its original state.
+    
 permissions:
 
   - role: owner
