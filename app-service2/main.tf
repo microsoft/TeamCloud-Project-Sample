@@ -15,9 +15,8 @@ provider "azurerm" {
   skip_provider_registration = true
 }
 
-resource "azurerm_resource_group" "main" {
+data "azurerm_resource_group" "main" {
   name     = var.resourceGroupName
-  location = var.resourceGroupLocation
 }
 
 resource "azurerm_app_service_plan" "main" {
