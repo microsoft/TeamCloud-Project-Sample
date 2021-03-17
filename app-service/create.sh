@@ -25,13 +25,14 @@ trace "Initializing Terraform"
 terraform init -no-color
 
 if [[ (! -z "$ComponentResourceGroup") && (! -f "$ComponentStateFile") ]]; then
-	ComponentResourceGroupId=$(az group show -n $ComponentResourceGroup --query id -o tsv)
+	ComponentResourceGroupId="$(az group show -n $ComponentResourceGroup --query id -o tsv)"
+	ComponentResourceGroupLocation="$(az group show -n $ComponentResourceGroup --query location -o tsv)"
 	while read terraformFile; do
 		trace "Initializing Terraform ResourceGroups ($terraformFile)"
-		while read rg; do
+		while read tfrg; do
 
-			echo "- Importing $ComponentResourceGroupId into $rg"
-			terraform import -no-color -lock=true -state=$ComponentStateFile $rg $ComponentResourceGroupId -var "resourceGroupName=$ComponentResourceGroup" -var "resourceGroupLocation=$(az group show -n $ComponentResourceGroup --query location -o tsv)"
+			echo -e "\n- Importing $ComponentResourceGroupId into $tfrg\n"
+			terraform import -no-color -lock=true -state=$ComponentStateFile -var "resourceGroupName=$ComponentResourceGroup" -var "resourceGroupLocation=$ComponentResourceGroupLocation" $tfrg $ComponentResourceGroupId
 
 		done < <(cat $terraformFile | hcl2json | jq --raw-output '.resource.azurerm_resource_group // empty | to_entries [] | "azurerm_resource_group.\(.key)"')
 		echo "- done."
