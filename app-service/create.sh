@@ -24,7 +24,7 @@ terraform -version
 trace "Initializing Terraform"
 terraform init -no-color
 
-if [ ! -z "$ComponentResourceGroup" && ! -f "$ComponentStateFile" ]; then
+if [[ (! -z "$ComponentResourceGroup") && (! -f "$ComponentStateFile") ]]; then
 	ComponentResourceGroupId=$(az group show -n $ComponentResourceGroup --query id -o tsv)
 	while read terraformFile; do
 		trace "Initializing Terraform ResourceGroups ($terraformFile)"
