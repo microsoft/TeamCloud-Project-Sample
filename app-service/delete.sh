@@ -6,7 +6,7 @@ trace() {
 
 echo "============================================================"
 echo "="
-echo "= CREATE"
+echo "= DELETE"
 echo "="
 echo "============================================================"
 
@@ -22,7 +22,7 @@ trace "Initializing Terraform"
 terraform init -no-color
 
 trace "Updating Terraform Plan"
-terraform plan -no-color -refresh=true -lock=true -state=$ComponentStateFile -out=$ComponentTemplatePlan -var "ComponentResourceGroupName=$ComponentResourceGroup"
+terraform plan -no-color -refresh=true -lock=true -destroy -state=$ComponentStateFile -out=$ComponentTemplatePlan -var "ComponentResourceGroupName=$ComponentResourceGroup"
 
 trace "Applying Terraform Plan"
 terraform apply -no-color -auto-approve -lock=true -state=$ComponentStateFile $ComponentTemplatePlan
