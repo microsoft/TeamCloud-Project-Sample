@@ -3,8 +3,8 @@ provider "azurerm" {
 }
 
 resource "azurerm_resource_group" "main" {
-  name     = "${var.resourceGroupName}"
-  location = "${var.resourceGroupLocation}"
+  name     = var.resourceGroupName
+  location = var.resourceGroupLocation
 }
 
 resource "azurerm_app_service_plan" "main" {
