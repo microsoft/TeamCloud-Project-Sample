@@ -18,6 +18,9 @@ ComponentTemplateJson="$(cat $ComponentTemplateFile | hcl2json)"
 
 # echo "$ComponentTemplateJson"
 
+trace "Terraform Info"
+terraform -version
+
 trace "Initializing Terraform"
 terraform init -no-color
 
