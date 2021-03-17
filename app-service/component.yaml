@@ -1,3 +1,6 @@
+# set the display name of the component
+name: Azure App Service
+
 # Set the component type
 type: Environment
 
