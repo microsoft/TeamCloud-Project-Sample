@@ -33,7 +33,7 @@ if [[ (! -z "$ComponentResourceGroup") && (! -f "$ComponentStateFile") ]]; then
 			echo "- Importing $ComponentResourceGroupId into $rg"
 			terraform import -no-color -lock=true -state=$ComponentStateFile $rg $ComponentResourceGroupId -var "resourceGroupName=$ComponentResourceGroup" -var "resourceGroupLocation=$(az group show -n $ComponentResourceGroup --query location -o tsv)"
 
-		done < <(cat $terraformFile | hcl2json | jq --raw-output '.resource.azurerm_resource_group | to_entries [] | "azurerm_resource_group.\(.key)"')
+		done < <(cat $terraformFile | hcl2json | jq --raw-output '.resource.azurerm_resource_group // empty | to_entries [] | "azurerm_resource_group.\(.key)"')
 		echo "- done."
 	done < <(find . -maxdepth 1 -type f -name '*.tf')
 fi
