@@ -10,13 +10,10 @@ echo "= CREATE"
 echo "="
 echo "============================================================"
 
-readonly ComponentStateFile="/mnt/storage/terraform.tfstate"
+readonly ComponentState="/mnt/storage/component.tfstate"
+readonly ComponentPlan="/mnt/storage/component.tfplan"
 
-ComponentTemplateFile="$(echo "$ComponentTemplateFolder/main.tf" | sed 's/^file:\/\///g')"
-ComponentTemplatePlan="$(echo "$ComponentTemplateFile.plan")"
-ComponentTemplateJson="$(cat $ComponentTemplateFile | hcl2json)"
-
-# echo "$ComponentTemplateJson"
+rm -f $ComponentPlan # delete any existing plan file
 
 trace "Terraform Info"
 terraform -version
@@ -24,7 +21,7 @@ terraform -version
 trace "Initializing Terraform"
 terraform init -no-color
 
-if [[ (! -z "$ComponentResourceGroup") && (! -f "$ComponentStateFile") ]]; then
+if [[ (! -z "$ComponentResourceGroup") && (! -f "$ComponentState") ]]; then
 	ComponentResourceGroupId="$(az group show -n $ComponentResourceGroup --query id -o tsv)"
 	ComponentResourceGroupLocation="$(az group show -n $ComponentResourceGroup --query location -o tsv)"
 	while read terraformFile; do
@@ -32,7 +29,7 @@ if [[ (! -z "$ComponentResourceGroup") && (! -f "$ComponentStateFile") ]]; then
 		while read tfrg; do
 
 			echo -e "\n- Importing $ComponentResourceGroupId into $tfrg\n"
-			terraform import -no-color -lock=true -state=$ComponentStateFile -var "resourceGroupName=$ComponentResourceGroup" -var "resourceGroupLocation=$ComponentResourceGroupLocation" $tfrg $ComponentResourceGroupId
+			terraform import -no-color -lock=true -state=$ComponentState -var "resourceGroupName=$ComponentResourceGroup" -var "resourceGroupLocation=$ComponentResourceGroupLocation" $tfrg $ComponentResourceGroupId
 
 		done < <(cat $terraformFile | hcl2json | jq --raw-output '.resource.azurerm_resource_group // empty | to_entries [] | "azurerm_resource_group.\(.key)"')
 		echo "- done."
@@ -40,9 +37,9 @@ if [[ (! -z "$ComponentResourceGroup") && (! -f "$ComponentStateFile") ]]; then
 fi
 
 trace "Updating Terraform Plan"
-terraform plan -no-color -refresh=true -lock=true -state=$ComponentStateFile -out=$ComponentTemplatePlan -var "resourceGroupName=$ComponentResourceGroup" -var "resourceGroupLocation=$(az group show -n $ComponentResourceGroup --query location -o tsv)"
+terraform plan -no-color -refresh=true -lock=true -state=$ComponentState -out=$ComponentPlan -var "resourceGroupName=$ComponentResourceGroup" -var "resourceGroupLocation=$(az group show -n $ComponentResourceGroup --query location -o tsv)"
 
 trace "Applying Terraform Plan"
-terraform apply -no-color -auto-approve -lock=true -state=$ComponentStateFile $ComponentTemplatePlan
+terraform apply -no-color -auto-approve -lock=true -state=$ComponentState $ComponentPlan
 
 # tail -f /dev/null
