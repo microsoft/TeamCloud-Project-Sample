@@ -1,0 +1,36 @@
+# set the display name of the component
+name: Azure App Service 2
+
+# Set the component type
+type: Environment
+
+# set the component description
+description: ./readme.md
+
+# Set the component isolation level
+isolation: ResourceGroup
+
+parameters:
+
+  - id: runtime
+    name: Runtime
+    type: string
+    required: true
+    default: dotnet
+    allowed:
+      - node
+      - dotnet
+      - java
+      
+tasks:
+
+  - id: reset
+    name: Reset
+    description: Reset the component to its original state.
+    
+permissions:
+
+  - role: owner
+    permission: Contributor
+
+provider: teamcloud/tcrunner-terraform
