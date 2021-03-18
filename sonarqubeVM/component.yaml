@@ -23,6 +23,9 @@ tasks:
     name: Reset
     description: Reset the component to its original state.
 
+taskRunner:
+  id: teamcloud/tcrunner-arm
+
 permissions:
 
   - role: owner
