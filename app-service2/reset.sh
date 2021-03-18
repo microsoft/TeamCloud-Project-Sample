@@ -33,8 +33,10 @@ if [ -f "$ComponentState" ]; then
 
 	trace "Tainting Terraform State"
 	while read res; do
-		echo "- resource $res"
-		terraform taint -allow-missing -lock=true -state=$ComponentState $res
+		if [[ "$res" != "data.*" ]]; then
+			echo "- resource $res"
+			terraform taint -allow-missing -lock=true -state=$ComponentState $res
+		fi
 	done < <(terraform state list -state=$ComponentState)
 
 	trace "Creating Terraform Plan"
