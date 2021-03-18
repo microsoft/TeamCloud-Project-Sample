@@ -23,8 +23,6 @@ readonly ComponentVars="/mnt/temporary/component.tfvars.json"
 
 echo "$ComponentTemplateParameters" > $ComponentVars
 
-
-
 if [ -f "$ComponentState" ]; then
 
 	trace "Terraform Info"
@@ -34,10 +32,16 @@ if [ -f "$ComponentState" ]; then
 	terraform init -no-color
 
 	trace "Tainting Terraform State"
-
 	while read res; do
 		echo "- resource $res"
+		terraform taint -allow-missing -lock=true -state=$ComponentState $res
 	done < <(terraform state list -state=$ComponentState)
+
+	trace "Creating Terraform Plan"
+	terraform plan -no-color -compact-warnings -refresh=true -lock=true -state=$ComponentState -out=$ComponentPlan -var-file="$ComponentVars" -var "resourceGroupName=$ComponentResourceGroup"
+
+	trace "Applying Terraform Plan"
+	terraform apply -no-color -compact-warnings -auto-approve -lock=true -state=$ComponentState $ComponentPlan
 
 else
 
