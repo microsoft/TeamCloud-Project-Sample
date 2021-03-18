@@ -15,15 +15,22 @@ provider "azurerm" {
   skip_provider_registration = true
 }
 
-resource "azurerm_resource_group" "main" {
-  name     = var.resourceGroupName
-  location = var.resourceGroupLocation
+resource "random_id" "server" {
+  keepers = {
+    azi_id = 1
+  }
+
+  byte_length = 8
 }
 
-resource "azurerm_app_service_plan" "main" {
-  name                = "${sha1(azurerm_resource_group.main.id)}-plan"
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
+data "azurerm_resource_group" "component" {
+  name     = var.resourceGroupName
+}
+
+resource "azurerm_app_service_plan" "component" {
+  name                = "${random_id.server.hex}-plan"
+  location            = data.azurerm_resource_group.component.location
+  resource_group_name = data.azurerm_resource_group.component.name
 
   sku {
     tier = "Basic"
@@ -31,11 +38,11 @@ resource "azurerm_app_service_plan" "main" {
   }
 }
 
-resource "azurerm_app_service" "main" {
-  name                = "${sha1(azurerm_resource_group.main.id)}-website"
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
-  app_service_plan_id = azurerm_app_service_plan.main.id
+resource "azurerm_app_service" "component" {
+  name                = "${random_id.server.hex}-website"
+  location            = data.azurerm_resource_group.component.location
+  resource_group_name = data.azurerm_resource_group.component.name
+  app_service_plan_id = azurerm_app_service_plan.component.id
 
   site_config {
     dotnet_framework_version = "v4.0"

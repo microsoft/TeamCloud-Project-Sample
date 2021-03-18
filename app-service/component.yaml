@@ -1,5 +1,5 @@
 # set the display name of the component
-name: Azure App Service
+name: Azure App Service 2
 
 # Set the component type
 type: Environment
@@ -27,7 +27,10 @@ tasks:
   - id: reset
     name: Reset
     description: Reset the component to its original state.
-    
+
+taskRunner:
+  id: teamcloud/tcrunner-terraform
+  
 permissions:
 
   - role: owner
