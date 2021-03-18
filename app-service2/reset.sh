@@ -33,7 +33,7 @@ if [ -f "$ComponentState" ]; then
 
 	trace "Tainting Terraform State"
 	while read res; do
-		if [[ "$res" != "data.*" ]]; then
+		if [[ "$res" != "data."* ]]; then
 			echo "- resource $res"
 			terraform taint -allow-missing -lock=true -state=$ComponentState $res
 		fi
