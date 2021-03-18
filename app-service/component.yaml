@@ -1,5 +1,5 @@
 # set the display name of the component
-name: Azure App Service 2
+name: Azure App Service
 
 # Set the component type
 type: Environment
@@ -30,7 +30,7 @@ tasks:
 
 taskRunner:
   id: teamcloud/tcrunner-terraform
-  
+
 permissions:
 
   - role: owner
