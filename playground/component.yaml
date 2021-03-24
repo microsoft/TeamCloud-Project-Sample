@@ -1,0 +1,26 @@
+# set the display name of the component
+name: Playground
+
+# Set the component type
+type: Environment
+
+# set the component description
+description: ./readme.md
+
+# Set the component isolation level
+isolation: ResourceGroup
+
+parameters:
+
+tasks:
+
+  - id: reset
+    name: Reset
+    description: Reset the component to its original state.
+
+permissions:
+
+  - role: owner
+    permission: Contributor
+
+provider: teamcloud/tcrunner-arm
