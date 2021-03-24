@@ -12,6 +12,12 @@ isolation: ResourceGroup
 
 parameters:
 
+  - id: dummy
+    name: Dummy
+    type: string
+    required: true
+    default: empty
+
 tasks:
 
   - id: reset
