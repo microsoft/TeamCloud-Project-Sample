@@ -54,5 +54,3 @@ permissions:
   
   - role: member
     permission: Contributor
-
-provider: teamcloud/tcrunner-arm

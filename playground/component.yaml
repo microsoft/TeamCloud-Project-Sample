@@ -25,5 +25,3 @@ permissions:
 
   - role: owner
     permission: Contributor
-
-provider: teamcloud/tcrunner-arm
