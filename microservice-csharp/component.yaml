@@ -1,24 +1,17 @@
 # set the display name of the component
-name: Playground
+name: Microservice C#
 
 # Set the component type
-type: Environment
+type: Repository
 
 # set the component description
 description: ./readme.md
 
 configuration:
 
-  # Set the component isolation level
-  isolation: ResourceGroup
-
 parameters:
 
 tasks:
-
-  - id: reset
-    name: Reset
-    description: Reset the component to its original state.
 
 permissions:
 
