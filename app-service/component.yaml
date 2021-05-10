@@ -4,8 +4,10 @@ type: Environment
 # set the component description
 description: ./readme.md
 
-# Set the component isolation level
-isolation: ResourceGroup
+configuration:
+
+  # Set the component isolation level
+  isolation: ResourceGroup
 
 parameters:
 
