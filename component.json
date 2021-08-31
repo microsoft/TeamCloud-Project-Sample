@@ -1,0 +1,221 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "TeamCloud Components",
+    "description": "Schema for TeamCloud Component definitions",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+        "name",
+        "type"
+    ],
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": "The display name of the component"
+        },
+        "type": {
+            "oneOf": [
+                {
+                    "const": "Environment",
+                    "description": "Cloud environment"
+                },
+                {
+                    "const": "Repository",
+                    "description": "Git repository"
+                }
+            ]
+        },
+        "description": {
+            "type": "string",
+            "description": "A description string or reletive url to a markdown file",
+            "examples": [
+                "./readme.md"
+            ]
+        },
+        "configuration": {
+            "description": "Configuration for the component",
+            "oneOf": [
+                {
+                    "$ref": "#/definitions/EnvironmentConfiguration"
+                },
+                {
+                    "$ref": "#/definitions/RepositoryConfiguration"
+                }
+            ]
+        },
+        "parameters": {
+            "type": "array",
+            "description": "Input paramaters to use when creating the component",
+            "items": {
+                "$ref": "#/definitions/Parameter"
+            }
+        },
+        "tasks": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/Task"
+            }
+        },
+        "taskRunner": {
+            "$ref": "#/definitions/TaskRunner"
+        },
+        "permissions": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/Permission"
+            }
+        }
+    },
+    "definitions": {
+        "EnvironmentConfiguration": {
+            "type": "object",
+            "description": "The Environment Component configuration",
+            "required": [
+                "isolation"
+            ],
+            "properties": {
+                "isolation": {
+                    "enum": [
+                        "ResourceGroup",
+                        "Subscription"
+                    ]
+                }
+            }
+        },
+        "RepositoryConfiguration": {
+            "type": "object",
+            "description": "The Repository Component configuration",
+            "required": [
+                "templateRepository"
+            ],
+            "properties": {
+                "templateRepository": {
+                    "type": "string",
+                    "description": "Template repository to use when creating a new repo"
+                }
+            }
+        },
+        "Parameter": {
+            "type": "object",
+            "required": [
+                "id",
+                "name",
+                "type"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "Unique ID of the parameter"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Display name of the parameter"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Description of the parameter"
+                },
+                "default": true,
+                "type": {
+                    "enum": [
+                        "array",
+                        "boolean",
+                        "integer",
+                        "null",
+                        "number",
+                        "object",
+                        "string"
+                    ],
+                    "default": "string",
+                    "description": "A string of one of the basic JSON types (number, integer, null, array, object, boolean, string)"
+                },
+                "readOnly": {
+                    "type": "boolean",
+                    "description": "Whether or not this parameter is read-only.  If true, default should have a value"
+                },
+                "required": {
+                    "type": "boolean",
+                    "description": "Whether or not this parameter is required"
+                },
+                "allowed": {
+                    "type": "array",
+                    "items": true,
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "description": "An array of allowed values"
+                }
+            }
+        },
+        "Task": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "Unique ID of the task"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Display name of the task"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Description of the task"
+                }
+            }
+        },
+        "TaskRunner": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "examples": [
+                        "teamcloud/tcrunner-arm",
+                        "teamcloud/tcrunner-terraform"
+                    ]
+                }
+            }
+        },
+        "Permission": {
+            "type": "object",
+            "required": [
+                "role",
+                "permission"
+            ],
+            "properties": {
+                "role": {
+                    "enum": [
+                        "none",
+                        "member",
+                        "admin",
+                        "owner",
+                        "adapter"
+                    ]
+                },
+                "permission": {
+                    "oneOf": [
+                        {
+                            "type": "string",
+                            "examples": [
+                                "Contributor",
+                                "Reader"
+                            ]
+                        },
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "examples": [
+                                    "Contributor",
+                                    "Reader"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    }
+}

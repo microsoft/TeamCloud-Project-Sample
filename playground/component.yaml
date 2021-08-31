@@ -12,8 +12,6 @@ configuration:
   # Set the component isolation level
   isolation: ResourceGroup
 
-parameters:
-
 
 tasks:
 
