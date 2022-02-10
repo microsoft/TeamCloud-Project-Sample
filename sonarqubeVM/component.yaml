@@ -24,7 +24,8 @@ tasks:
     description: Reset the component to its original state.
 
 taskRunner:
-  id: teamcloud/tcrunner-arm
+  id: teamcloud.azurecr.io/teamcloud/tcrunner-arm
+  webServer: true
 
 permissions:
 

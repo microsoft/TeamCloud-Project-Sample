@@ -48,7 +48,8 @@ tasks:
     description: Delete all resources, but keep the component alive.
 
 taskRunner:
-  id: teamcloud/tcrunner-arm
+  id: teamcloud.azurecr.io/teamcloud/tcrunner-arm
+  webServer: true
   
 permissions:
 
