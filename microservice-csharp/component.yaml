@@ -1,0 +1,21 @@
+# set the display name of the component
+name: Microservice C#
+
+# Set the component type
+type: Repository
+
+# set the component description
+description: ./readme.md
+
+configuration:
+
+parameters:
+
+tasks:
+
+permissions:
+
+  - role: owner
+    permission: Contributor
+
+provider: teamcloud/tcrunner-arm

@@ -1,0 +1,6 @@
+{
+    "yaml.schemas": {
+        "project.json": "project.yaml",
+        "component.json": "component.yaml"
+    }
+}
