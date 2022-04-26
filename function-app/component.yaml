@@ -51,7 +51,7 @@ tasks:
 
 taskRunner:
   id: teamcloud.azurecr.io/teamcloud/tcrunner-arm
-  webServer: true
+  # webServer: true
   
 permissions:
 
