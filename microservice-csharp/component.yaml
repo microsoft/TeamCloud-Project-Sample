@@ -9,6 +9,8 @@ description: ./readme.md
 
 configuration:
 
+  templateRepository: https://github.com/markusheiliger/repo-template.git
+  
 parameters:
 
 tasks:
