@@ -13,11 +13,17 @@ configuration:
   
 parameters:
 
-tasks:
+  - id: namespace
+    name: Namespace
+    type: string
+    required: true
+
+taskRunner:
+  id: teamcloud.azurecr.io/teamcloud/tcrunner-github
+  # webServer: true
 
 permissions:
 
   - role: owner
     permission: Contributor
 
-provider: teamcloud/tcrunner-arm
