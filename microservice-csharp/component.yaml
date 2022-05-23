@@ -19,7 +19,7 @@ parameters:
     required: true
 
 taskRunner:
-  id: teamcloud.azurecr.io/teamcloud/tcrunner-github
+  id: teamcloud.azurecr.io/teamcloud/tcrunner-github-markushe
   # webServer: true
 
 permissions:
